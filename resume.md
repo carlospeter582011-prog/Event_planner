@@ -68,10 +68,19 @@ The app normalizes accidental Supabase URLs ending in `/rest/v1` in `lib/supabas
 Room workspace lives under `app/(protected)/rooms/[roomId]/`.
 
 Tabs:
+- Command
 - Timeline
 - Tasks
 - Budget
 - Chat
+
+Command Center summarizes room health for TestSprite and human reviewers:
+- readiness score
+- open poll count
+- task completion progress
+- budget health
+- live verification checklist
+- participant permission matrix
 
 Timeline supports days, activities, activity costs/status/location/time, voting polls, voting, and host poll resolution.
 
@@ -80,6 +89,8 @@ Tasks supports task creation, priority, due date, completion toggle, filters, an
 Budget shows budget cap, allocated, confirmed, remaining, usage bar, cost breakdown, and warning if over budget.
 
 Chat tab exists in `chat-view.tsx` and depends on the `room_messages` SQL table.
+
+Host controls now include a visible Host User Controller in `participant-sidebar.tsx`. Hosts can update non-host participants between `EDITOR` and `VIEWER`, and the sidebar renders capability summaries for `HOST`, `EDITOR`, and `VIEWER`.
 
 ### Realtime and Silent Refresh
 
@@ -160,6 +171,8 @@ TestSprite project:
 Existing tests:
 - Public smoke test: `f64fda4a-144a-4b90-9aa8-a822c1f2aedf`
 - Authenticated full-site test: `305b4e20-b1f0-4646-b064-5f5d74eb7993`
+
+The authenticated plan has been expanded to cover the Command Center, readiness metrics, permission matrix, and Host User Controller in addition to rooms, invites, timeline, polls, tasks, budget, and chat.
 
 Known passing run:
 - Authenticated run `65f0747f-2b81-46bc-a3ea-2ec6679f04c5` passed after the profile self-heal room-creation fix.

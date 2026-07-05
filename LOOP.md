@@ -42,3 +42,4 @@ Iteration 32: Verified invite parsing, share dialog, chat scaffold, and polling 
 Iteration 33: Changed room timeline, tasks, and budget polling to refresh silently without visible loading states and expanded TestSprite full-project description -> Verification pending -> Push pending.
 Iteration 34: Verified silent background refresh and expanded TestSprite project-plan context with `npm run build` -> Build passes -> Push pending.
 Iteration 35: Added root `resume.md` handoff with project architecture, deployment, Supabase SQL, TestSprite state, recent commits, and next steps for a fresh AI chat -> Verification not required -> Push pending.
+Iteration 36: Added Command Center room overview, Host User Controller role controls, expanded authenticated TestSprite coverage, and replaced README with full GitHub project documentation -> Build passes -> Push pending.

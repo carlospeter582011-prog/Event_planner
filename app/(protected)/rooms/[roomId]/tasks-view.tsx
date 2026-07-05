@@ -276,11 +276,12 @@ export default function TasksView({ roomId, role, userId }: TasksViewProps) {
                 <select
                   id="task-priority"
                   name="priority"
+                  defaultValue="MEDIUM"
                   className="input"
                   data-testid="create-task-priority"
                 >
                   <option value="LOW">Low</option>
-                  <option value="MEDIUM" selected>Medium</option>
+                  <option value="MEDIUM">Medium</option>
                   <option value="HIGH">High</option>
                 </select>
               </div>

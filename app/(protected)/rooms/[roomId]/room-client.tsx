@@ -12,6 +12,7 @@ import TimelineView from "./timeline-view";
 import TasksView from "./tasks-view";
 import BudgetView from "./budget-view";
 import ChatView from "./chat-view";
+import CommandCenterView from "./command-center-view";
 import ParticipantSidebar from "./participant-sidebar";
 import RoomNavigation, { type RoomTab } from "./room-navigation";
 import Modal from "@/components/ui/modal";
@@ -43,7 +44,7 @@ export default function RoomClient({
   roomId,
 }: RoomClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<RoomTab>("timeline");
+  const [activeTab, setActiveTab] = useState<RoomTab>("command");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -216,10 +217,12 @@ export default function RoomClient({
       {sidebarOpen && (
         <div id="mobile-participant-sidebar" className="lg:hidden">
           <ParticipantSidebar
+            roomId={roomId}
             participants={typedParticipants}
             currentUserId={userId}
             currentRole={role}
             hostName={host?.name || "Unknown"}
+            onParticipantsChanged={() => router.refresh()}
           />
         </div>
       )}
@@ -240,6 +243,14 @@ export default function RoomClient({
           >
             {activeTab === "timeline" && (
               <TimelineView roomId={roomId} role={role} userId={userId} />
+            )}
+            {activeTab === "command" && (
+              <CommandCenterView
+                roomId={roomId}
+                roomBudgetCap={roomBudgetCap}
+                participants={typedParticipants}
+                role={role}
+              />
             )}
             {activeTab === "tasks" && (
               <TasksView roomId={roomId} role={role} userId={userId} />
@@ -274,10 +285,12 @@ export default function RoomClient({
         <div className="hidden lg:block">
           <div className="sticky top-24">
             <ParticipantSidebar
+              roomId={roomId}
               participants={typedParticipants}
               currentUserId={userId}
               currentRole={role}
               hostName={host?.name || "Unknown"}
+              onParticipantsChanged={() => router.refresh()}
             />
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-type RoomTab = "timeline" | "tasks" | "budget" | "chat";
+type RoomTab = "command" | "timeline" | "tasks" | "budget" | "chat";
 
 interface RoomNavigationProps {
   activeTab: RoomTab;
@@ -11,6 +11,11 @@ interface RoomNavigationProps {
 }
 
 const tabs: { id: RoomTab; label: string; description: string }[] = [
+  {
+    id: "command",
+    label: "Command",
+    description: "Live room health",
+  },
   {
     id: "timeline",
     label: "Timeline",
@@ -47,7 +52,7 @@ export default function RoomNavigation({
       aria-label="Room workspace sections"
       data-testid="room-navigation"
     >
-      <div className="grid gap-1 sm:grid-cols-4">
+      <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-5">
         {tabs.map((tab) => (
           <button
             key={tab.id}

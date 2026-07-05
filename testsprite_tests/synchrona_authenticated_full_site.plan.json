@@ -2,7 +2,7 @@
   "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
   "type": "frontend",
   "name": "Synchrona authenticated full website flow",
-  "description": "Synchrona is a real-time collaborative event planner for multi-day event rooms. Authenticated users create secure UUID/slug rooms, invite others by link or room code, manage role-based access, build day-by-day timelines with activity blocks, attach democratic voting polls to proposed activities, maintain task checklists, monitor budget caps and allocated costs, and use a room chat for collaboration. Test the full authenticated workflow as a Host with the supplied account: login, create a room, verify invite/share controls, create itinerary days and activities, create and vote in a poll, create and complete tasks, inspect the budget dashboard, and verify chat is available without fatal errors.",
+  "description": "Synchrona is a real-time collaborative event planner for multi-day event rooms. Authenticated users create secure UUID/slug rooms, invite others by link or room code, manage role-based access, inspect a live Command Center, build day-by-day timelines with activity blocks, attach democratic voting polls to proposed activities, maintain room to-do lists, monitor budget caps and allocated costs, and use a room chat for collaboration. Test the full authenticated workflow as a Host with the supplied account: login, create a room, verify invite/share controls, inspect the Command Center, verify the host user controller and permission matrix, create itinerary days and activities, create and vote in a poll, create and complete tasks, inspect the budget dashboard, and verify chat is available without fatal errors.",
   "priority": "p0",
   "planSteps": [
     {
@@ -27,8 +27,18 @@
     },
     {
       "type": "assertion",
-      "description": "Verify the room workspace renders the room title, secure slug, host role indicator, timeline tab, tasks tab, budget tab, chat tab, invite controls, and participant sidebar.",
-      "expected": "The room shell and RBAC host controls are visible."
+      "description": "Verify the room workspace renders the room title, secure slug, host role indicator, command tab, timeline tab, tasks tab, budget tab, chat tab, invite controls, and participant sidebar.",
+      "expected": "The room shell, Command Center entry point, and RBAC host controls are visible."
+    },
+    {
+      "type": "assertion",
+      "description": "Open the Command tab and verify readiness score, open polls metric, task progress metric, budget health metric, live verification board, and permission matrix are visible.",
+      "expected": "The Command Center summarizes room health and participant capabilities in testable UI regions."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the participant sidebar shows the Host User Controller and role capability summaries for Host, Editor, and Viewer.",
+      "expected": "The Host can see the user permission controller for room-level access management."
     },
     {
       "type": "action",

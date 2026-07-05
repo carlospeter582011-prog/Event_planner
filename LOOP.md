@@ -31,3 +31,5 @@ Iteration 21: Added tracked Supabase public env example and normalized accidenta
 Iteration 22: Verified Supabase public config normalization with `npm run build` using local Supabase environment -> Build passes -> Push pending.
 Iteration 23: Added Supabase public URL and anon key to Vercel production, preview, and development environments after GitHub push -> Verification pending -> Redeploy trigger pending.
 Iteration 24: Verified Supabase-env production deployment with TestSprite smoke run `c8fe5233-bee7-40d4-beea-b1505559190a` against Vercel alias -> Passed 6/6 steps -> Redeployed.
+Iteration 25: Updated signup success feedback for disabled Supabase email confirmation before authenticated TestSprite coverage -> Verification pending -> Push pending.
+Iteration 26: Verified disabled-email-confirmation signup copy change with `npm run build` -> Build passes -> Push pending.

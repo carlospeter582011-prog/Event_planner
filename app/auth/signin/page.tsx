@@ -47,7 +47,7 @@ export default function SignInPage() {
 
         if (error) throw error;
 
-        toast.success("Account created! Check your email to confirm.");
+        toast.success("Account created! Redirecting to your dashboard.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,

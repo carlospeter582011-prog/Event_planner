@@ -133,7 +133,7 @@ export default function BudgetView({
       )}
 
       {/* Budget cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))]">
         <BudgetCard
           testId="budget-cap"
           label="Total Budget Cap"
@@ -181,9 +181,11 @@ export default function BudgetView({
             data-testid="budget-usage-bar"
           />
         </div>
-        <div className="mt-3 flex justify-between text-xs text-slate-500">
+        <div className="mt-3 flex min-w-0 justify-between gap-3 text-xs text-slate-500">
           <span>{formatCurrency(0)}</span>
-          <span>{formatCurrency(roomBudgetCap)}</span>
+          <span className="min-w-0 break-all text-right [overflow-wrap:anywhere]">
+            {formatCurrency(roomBudgetCap)}
+          </span>
         </div>
       </div>
 
@@ -203,18 +205,18 @@ export default function BudgetView({
             activities.map((act) => (
               <div
                 key={act.id}
-                className="flex items-center justify-between px-5 py-3"
+                className="flex min-w-0 items-center justify-between gap-3 px-5 py-3"
                 data-testid={`budget-activity-${act.id}`}
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-slate-900 dark:text-white">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="min-w-0 truncate text-sm font-medium text-slate-900 dark:text-white">
                     {act.title}
                   </span>
                   <Badge variant="status" value={act.status}>
                     {act.status}
                   </Badge>
                 </div>
-                <span className="text-sm font-mono font-medium text-slate-700 dark:text-slate-300">
+                <span className="min-w-0 max-w-[45%] break-all text-right font-mono text-sm font-medium text-slate-700 [overflow-wrap:anywhere] dark:text-slate-300">
                   {formatCurrency(act.cost)}
                 </span>
               </div>
@@ -302,12 +304,12 @@ function BudgetCard({
   };
 
   return (
-    <div className="card p-4" data-testid={testId}>
+    <div className="card min-w-0 overflow-hidden p-4" data-testid={testId}>
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {label}
       </p>
       <p
-        className={`mt-1 break-words text-xl font-bold leading-tight sm:text-2xl ${colorMap[color]} dark:text-${color}-400`}
+        className={`mt-1 block min-w-0 break-all text-lg font-bold leading-tight [overflow-wrap:anywhere] sm:text-xl ${colorMap[color]} dark:text-${color}-400`}
         title={value}
       >
         {value}

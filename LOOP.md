@@ -14,3 +14,5 @@ Iteration 4: Verified Phase 3 room management and navigation with `npm run build
 Iteration 5: Redacted committed GitHub token from AGENTS.md after push protection blocked deployment -> Build already passes -> Push retry pending.
 Iteration 6: Pushed amended Phase 3 room management commit to origin main -> Build passes -> Redeployed via remote sync.
 Iteration 7: Added Codex agent provenance proof before continuing website implementation -> Verification pending -> Push pending.
+Iteration 8: Added Phase 5 voting poll creation, live vote distribution, one-vote updates, and Host poll resolution controls in timeline activities -> Verification pending -> Push pending.
+Iteration 9: Verified Phase 5 voting timeline changes with `npm run build` after Vercel deploy concern -> Build passes locally -> Push pending.

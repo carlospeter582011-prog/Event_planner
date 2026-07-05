@@ -8,7 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import Modal from "@/components/ui/modal";
 import { formatCurrency, formatDate, formatTime, midpoint } from "@/lib/utils";
-import type { Role, ActivityStatus } from "@/types";
+import type { Role, ActivityStatus, PollStatus } from "@/types";
 
 interface TimelineViewProps {
   roomId: string;
@@ -37,6 +37,27 @@ interface ActivityRow {
   order_index: number;
 }
 
+interface VoteRow {
+  id: string;
+  user_id: string;
+}
+
+interface PollOptionRow {
+  id: string;
+  poll_id: string;
+  option_text: string;
+  sequence: number;
+  votes: VoteRow[];
+}
+
+interface PollRow {
+  id: string;
+  activity_block_id: string;
+  question: string;
+  status: PollStatus;
+  options: PollOptionRow[];
+}
+
 export default function TimelineView({
   roomId,
   role,
@@ -45,7 +66,9 @@ export default function TimelineView({
   const supabase = createClient();
   const [days, setDays] = useState<DayRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
+  const [polls, setPolls] = useState<PollRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mutationLoading, setMutationLoading] = useState<string | null>(null);
   const [addDayOpen, setAddDayOpen] = useState(false);
   const [newDayTitle, setNewDayTitle] = useState("");
   const [newDayDate, setNewDayDate] = useState("");
@@ -55,8 +78,16 @@ export default function TimelineView({
     editId?: string;
     initial?: Partial<ActivityRow>;
   }>({ open: false, dayId: "" });
+  const [pollModal, setPollModal] = useState<{
+    open: boolean;
+    activityId: string;
+    activityTitle: string;
+  }>({ open: false, activityId: "", activityTitle: "" });
+  const [pollQuestion, setPollQuestion] = useState("Which option should we choose?");
+  const [pollOptions, setPollOptions] = useState(["", "", "", "", ""]);
 
   const canEdit = role === "HOST" || role === "EDITOR";
+  const isHost = role === "HOST";
 
   // Fetch days and activities
   const fetchData = useCallback(async () => {
@@ -76,8 +107,22 @@ export default function TimelineView({
       )
       .order("order_index", { ascending: true });
 
+    const activityIds = (actData as ActivityRow[] | null)?.map((a) => a.id) ?? [];
+    const { data: pollData } = activityIds.length > 0
+      ? await supabase
+          .from("polls")
+          .select(
+            "id, activity_block_id, question, status, options:poll_options(id, poll_id, option_text, sequence, votes(id, user_id))",
+          )
+          .in("activity_block_id", activityIds)
+      : { data: [] };
+
     setDays((daysData as DayRow[] | null) ?? []);
     setActivities((actData as ActivityRow[] | null) ?? []);
+    setPolls(((pollData as unknown as PollRow[] | null) ?? []).map((poll) => ({
+      ...poll,
+      options: [...(poll.options ?? [])].sort((a, b) => a.sequence - b.sequence),
+    })));
     setLoading(false);
   }, [roomId, supabase]);
 
@@ -105,9 +150,29 @@ export default function TimelineView({
       )
       .subscribe();
 
+    const pollChannel = supabase
+      .channel("polls-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "polls" },
+        () => fetchData(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "poll_options" },
+        () => fetchData(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "votes" },
+        () => fetchData(),
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(daysChannel);
       supabase.removeChannel(actChannel);
+      supabase.removeChannel(pollChannel);
     };
   }, [roomId, supabase, fetchData]);
 
@@ -178,6 +243,113 @@ export default function TimelineView({
     const { error } = await supabase.from("activity_blocks").delete().eq("id", actId);
     if (error) { toast.error(error.message); return; }
     toast.success("Activity removed");
+  }
+
+  async function handleCreatePoll(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const options = pollOptions.map((option) => option.trim()).filter(Boolean);
+
+    if (options.length < 2 || options.length > 5) {
+      toast.error("Add 2 to 5 poll options.");
+      return;
+    }
+
+    setMutationLoading("create-poll");
+    const { data: poll, error: pollError } = await supabase
+      .from("polls")
+      .insert({
+        activity_block_id: pollModal.activityId,
+        question: pollQuestion.trim() || "Which option should we choose?",
+        status: "OPEN",
+      })
+      .select("id")
+      .single();
+
+    if (pollError || !poll) {
+      toast.error(pollError?.message ?? "Failed to create poll.");
+      setMutationLoading(null);
+      return;
+    }
+
+    const { error: optionError } = await supabase.from("poll_options").insert(
+      options.map((option, index) => ({
+        poll_id: (poll as { id: string }).id,
+        option_text: option,
+        sequence: index + 1,
+      })),
+    );
+
+    setMutationLoading(null);
+
+    if (optionError) {
+      toast.error(optionError.message);
+      return;
+    }
+
+    toast.success("Poll created.");
+    setPollModal({ open: false, activityId: "", activityTitle: "" });
+    setPollQuestion("Which option should we choose?");
+    setPollOptions(["", "", "", "", ""]);
+  }
+
+  async function handleVote(poll: PollRow, option: PollOptionRow) {
+    if (poll.status !== "OPEN") return;
+    setMutationLoading(`vote-${option.id}`);
+    const existingVote = poll.options
+      .flatMap((item) => item.votes)
+      .find((vote) => vote.user_id === userId);
+
+    const { error } = existingVote
+      ? await supabase
+          .from("votes")
+          .update({ poll_option_id: option.id })
+          .eq("id", existingVote.id)
+      : await supabase.from("votes").insert({
+          poll_option_id: option.id,
+          user_id: userId,
+        });
+
+    setMutationLoading(null);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Vote saved.");
+  }
+
+  async function handleResolvePoll(
+    activity: ActivityRow,
+    poll: PollRow,
+    option: PollOptionRow,
+  ) {
+    if (!isHost) return;
+    setMutationLoading(`resolve-${poll.id}`);
+
+    const { error: pollError } = await supabase
+      .from("polls")
+      .update({ status: "CLOSED", closed_at: new Date().toISOString() })
+      .eq("id", poll.id);
+
+    if (pollError) {
+      toast.error(pollError.message);
+      setMutationLoading(null);
+      return;
+    }
+
+    const { error: activityError } = await supabase
+      .from("activity_blocks")
+      .update({
+        title: option.option_text,
+        status: "CONFIRMED",
+      })
+      .eq("id", activity.id);
+
+    setMutationLoading(null);
+    if (activityError) {
+      toast.error(activityError.message);
+      return;
+    }
+    toast.success("Poll resolved and activity confirmed.");
   }
 
   // Drag & Drop handlers
@@ -312,6 +484,9 @@ export default function TimelineView({
                     </div>
                   ) : (
                     dayActs.map((act, idx) => (
+                      (() => {
+                        const poll = polls.find((item) => item.activity_block_id === act.id);
+                        return (
                       <div
                         key={act.id}
                         draggable={canEdit}
@@ -360,6 +535,34 @@ export default function TimelineView({
                               {act.description}
                             </p>
                           )}
+                          {poll ? (
+                            <PollPanel
+                              activity={act}
+                              poll={poll}
+                              userId={userId}
+                              isHost={isHost}
+                              mutationLoading={mutationLoading}
+                              onVote={handleVote}
+                              onResolve={handleResolvePoll}
+                            />
+                          ) : (
+                            canEdit && act.status !== "CONFIRMED" && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPollModal({
+                                    open: true,
+                                    activityId: act.id,
+                                    activityTitle: act.title,
+                                  })
+                                }
+                                className="mt-3 rounded-md border border-dashed border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-800 dark:text-brand-300 dark:hover:bg-brand-950/30"
+                                data-testid={`btn-create-poll-${act.id}`}
+                              >
+                                Create voting poll
+                              </button>
+                            )
+                          )}
                         </div>
 
                         {/* Actions */}
@@ -393,6 +596,8 @@ export default function TimelineView({
                           </div>
                         )}
                       </div>
+                        );
+                      })()
                     ))
                   )}
                 </div>
@@ -551,7 +756,194 @@ export default function TimelineView({
           </div>
         </form>
       </Modal>
+
+      <Modal
+        open={pollModal.open}
+        onClose={() => setPollModal({ open: false, activityId: "", activityTitle: "" })}
+        title="Create Voting Poll"
+      >
+        <form onSubmit={handleCreatePoll} data-testid="create-poll-form">
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Attach alternatives to {pollModal.activityTitle || "this activity"}.
+            </p>
+            <div>
+              <label htmlFor="poll-question" className="label">
+                Poll question
+              </label>
+              <input
+                id="poll-question"
+                name="question"
+                type="text"
+                value={pollQuestion}
+                onChange={(e) => setPollQuestion(e.target.value)}
+                className="input"
+                data-testid="poll-question"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="label">Options</label>
+              {pollOptions.map((option, index) => (
+                <input
+                  key={index}
+                  type="text"
+                  value={option}
+                  onChange={(e) => {
+                    const next = [...pollOptions];
+                    next[index] = e.target.value;
+                    setPollOptions(next);
+                  }}
+                  placeholder={index < 2 ? `Required option ${index + 1}` : `Optional option ${index + 1}`}
+                  className="input"
+                  data-testid={`poll-option-${index + 1}`}
+                />
+              ))}
+              <p className="text-xs text-slate-500">
+                Add 2 to 5 alternatives. Empty optional fields are ignored.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPollModal({ open: false, activityId: "", activityTitle: "" })}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={mutationLoading === "create-poll"}
+              className="btn-primary"
+              data-testid="create-poll-submit"
+            >
+              {mutationLoading === "create-poll" ? <Spinner className="h-4 w-4" /> : "Create poll"}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
+  );
+}
+
+function PollPanel({
+  activity,
+  poll,
+  userId,
+  isHost,
+  mutationLoading,
+  onVote,
+  onResolve,
+}: {
+  activity: ActivityRow;
+  poll: PollRow;
+  userId: string;
+  isHost: boolean;
+  mutationLoading: string | null;
+  onVote: (poll: PollRow, option: PollOptionRow) => void;
+  onResolve: (activity: ActivityRow, poll: PollRow, option: PollOptionRow) => void;
+}) {
+  const totalVotes = poll.options.reduce((sum, option) => sum + option.votes.length, 0);
+  const userVote = poll.options.find((option) =>
+    option.votes.some((vote) => vote.user_id === userId),
+  );
+  const topOption = [...poll.options].sort((a, b) => {
+    const voteDelta = b.votes.length - a.votes.length;
+    return voteDelta || a.sequence - b.sequence;
+  })[0];
+
+  return (
+    <section
+      className="mt-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-950/40"
+      data-testid={`poll-${poll.id}`}
+    >
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2">
+            <h5 className="text-sm font-semibold text-slate-900 dark:text-white">
+              {poll.question}
+            </h5>
+            <Badge variant="poll" value={poll.status}>
+              {poll.status}
+            </Badge>
+          </div>
+          <p className="mt-0.5 text-xs text-slate-500">
+            {totalVotes} vote{totalVotes === 1 ? "" : "s"}
+            {userVote ? ` · Your vote: ${userVote.option_text}` : ""}
+          </p>
+        </div>
+        {isHost && poll.status === "OPEN" && topOption && (
+          <button
+            type="button"
+            onClick={() => onResolve(activity, poll, topOption)}
+            disabled={mutationLoading === `resolve-${poll.id}`}
+            className="btn-secondary px-3 py-1.5 text-xs"
+            data-testid={`poll-auto-commit-${poll.id}`}
+          >
+            {mutationLoading === `resolve-${poll.id}` ? (
+              <Spinner className="h-3.5 w-3.5" />
+            ) : (
+              "Commit top choice"
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        {poll.options.map((option) => {
+          const votes = option.votes.length;
+          const percent = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+          const isSelected = userVote?.id === option.id;
+
+          return (
+            <div key={option.id} data-testid={`poll-option-result-${option.id}`}>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => onVote(poll, option)}
+                  disabled={poll.status !== "OPEN" || mutationLoading === `vote-${option.id}`}
+                  className={`min-w-0 flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
+                    isSelected
+                      ? "border-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/30 dark:text-brand-100"
+                      : "border-slate-200 bg-slate-50 text-slate-700 hover:border-brand-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+                  } disabled:cursor-not-allowed disabled:opacity-70`}
+                  data-testid={`poll-vote-${option.id}`}
+                >
+                  <span className="block truncate font-medium">
+                    {option.option_text}
+                  </span>
+                </button>
+                <span className="w-16 text-right text-xs font-medium text-slate-500">
+                  {votes} ({percent}%)
+                </span>
+                {isHost && poll.status === "OPEN" && (
+                  <button
+                    type="button"
+                    onClick={() => onResolve(activity, poll, option)}
+                    disabled={mutationLoading === `resolve-${poll.id}`}
+                    className="btn-ghost px-2 py-1 text-xs"
+                    data-testid={`poll-commit-${option.id}`}
+                  >
+                    Commit
+                  </button>
+                )}
+              </div>
+              <div className="mt-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800">
+                <div
+                  className="h-1.5 rounded-full bg-brand-500 transition-all"
+                  style={{ width: `${percent}%` }}
+                  role="progressbar"
+                  aria-valuenow={percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  data-testid={`poll-bar-${option.id}`}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

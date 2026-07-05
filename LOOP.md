@@ -33,3 +33,4 @@ Iteration 23: Added Supabase public URL and anon key to Vercel production, previ
 Iteration 24: Verified Supabase-env production deployment with TestSprite smoke run `c8fe5233-bee7-40d4-beea-b1505559190a` against Vercel alias -> Passed 6/6 steps -> Redeployed.
 Iteration 25: Updated signup success feedback for disabled Supabase email confirmation before authenticated TestSprite coverage -> Verification pending -> Push pending.
 Iteration 26: Verified disabled-email-confirmation signup copy change with `npm run build` -> Build passes -> Push pending.
+Iteration 27: Added TestSprite authenticated full-site plan using supplied test credentials across auth, rooms, timeline, polls, tasks, and budget -> Verification pending -> Push pending.

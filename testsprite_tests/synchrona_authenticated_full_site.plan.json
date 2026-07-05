@@ -1,0 +1,64 @@
+{
+  "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
+  "type": "frontend",
+  "name": "Synchrona authenticated full website flow",
+  "description": "Log in with the supplied test account and verify the core authenticated Synchrona workflow across dashboard, room creation, timeline, tasks, and budget.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to https://event-planner-carlos.vercel.app/auth/signin.",
+      "expected": "The Synchrona sign-in form loads without a server error."
+    },
+    {
+      "type": "action",
+      "description": "Enter carlospeter582011@gmail.com in the email field and K@ko2011 in the password field, then submit the form.",
+      "expected": "Authentication succeeds and the browser lands on the dashboard."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the dashboard title 'My Event Rooms' and the 'New room' button are visible.",
+      "expected": "The authenticated dashboard is usable."
+    },
+    {
+      "type": "action",
+      "description": "Create a new event room titled 'TestSprite Full Site Event' with description 'Automated full website verification' and a total budget cap of 1200.",
+      "expected": "The room is created and the browser navigates to the room workspace."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the room workspace renders the room title, secure slug, host role indicator, timeline tab, tasks tab, budget tab, and participant sidebar.",
+      "expected": "The room shell and RBAC host controls are visible."
+    },
+    {
+      "type": "action",
+      "description": "On the timeline tab, add a day titled 'Arrival Day' with date 2026-08-10.",
+      "expected": "The new day appears in the timeline."
+    },
+    {
+      "type": "action",
+      "description": "Add an activity to Arrival Day titled 'Welcome Dinner' with description 'Team kickoff dinner', cost 250, location 'Main Hall', and status Proposed.",
+      "expected": "The activity appears under Arrival Day with the proposed status and cost."
+    },
+    {
+      "type": "action",
+      "description": "Create a voting poll for Welcome Dinner with options 'Main Hall Buffet' and 'Rooftop Dinner', then vote for one option.",
+      "expected": "The poll renders live vote counts or bars and records the vote."
+    },
+    {
+      "type": "action",
+      "description": "Open the Tasks tab, create a task titled 'Confirm catering' with due date 2026-08-01 and high priority, then mark it complete.",
+      "expected": "The task appears, can be checked complete, and the task progress updates."
+    },
+    {
+      "type": "action",
+      "description": "Open the Budget tab.",
+      "expected": "The budget dashboard shows Total Budget Cap, Total Allocated, Confirmed, Remaining, budget usage, and the Welcome Dinner cost breakdown."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify no unhandled application error, 500 page, missing Supabase configuration warning, or blocked auth confirmation message is visible.",
+      "expected": "The authenticated full-site workflow completes without visible fatal errors."
+    }
+  ]
+}

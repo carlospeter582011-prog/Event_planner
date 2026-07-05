@@ -39,3 +39,5 @@ Iteration 29: Verified profile self-heal room creation fix with `npm run build` 
 Iteration 30: Verified authenticated full-site TestSprite run `65f0747f-2b81-46bc-a3ea-2ec6679f04c5` after room creation fix -> Passed -> Redeployed.
 Iteration 31: Added full invite-link parsing, invite copy/share dialog, chat tab scaffold, and polling fallback refresh for room timeline/tasks/budget -> Verification pending -> Push pending.
 Iteration 32: Verified invite parsing, share dialog, chat scaffold, and polling fallback changes with `npm run build` -> Build passes -> Push pending.
+Iteration 33: Changed room timeline, tasks, and budget polling to refresh silently without visible loading states and expanded TestSprite full-project description -> Verification pending -> Push pending.
+Iteration 34: Verified silent background refresh and expanded TestSprite project-plan context with `npm run build` -> Build passes -> Push pending.

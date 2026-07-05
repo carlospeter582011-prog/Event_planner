@@ -35,19 +35,19 @@ export default function TasksView({ roomId, role, userId }: TasksViewProps) {
 
   const canEdit = role === "HOST" || role === "EDITOR";
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true);
+  const fetchTasks = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     const { data } = await supabase
       .from("tasks")
       .select("*")
       .eq("room_id", roomId)
       .order("created_at", { ascending: false });
     setTasks((data as TaskRow[] | null) ?? []);
-    setLoading(false);
+    if (showLoader) setLoading(false);
   }, [roomId, supabase]);
 
   useEffect(() => {
-    fetchTasks();
+    fetchTasks(true);
     const interval = window.setInterval(fetchTasks, 5000);
     return () => window.clearInterval(interval);
   }, [fetchTasks]);

@@ -2,7 +2,7 @@
   "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
   "type": "frontend",
   "name": "Synchrona authenticated full website flow",
-  "description": "Log in with the supplied test account and verify the core authenticated Synchrona workflow across dashboard, room creation, timeline, tasks, and budget.",
+  "description": "Synchrona is a real-time collaborative event planner for multi-day event rooms. Authenticated users create secure UUID/slug rooms, invite others by link or room code, manage role-based access, build day-by-day timelines with activity blocks, attach democratic voting polls to proposed activities, maintain task checklists, monitor budget caps and allocated costs, and use a room chat for collaboration. Test the full authenticated workflow as a Host with the supplied account: login, create a room, verify invite/share controls, create itinerary days and activities, create and vote in a poll, create and complete tasks, inspect the budget dashboard, and verify chat is available without fatal errors.",
   "priority": "p0",
   "planSteps": [
     {
@@ -27,8 +27,13 @@
     },
     {
       "type": "assertion",
-      "description": "Verify the room workspace renders the room title, secure slug, host role indicator, timeline tab, tasks tab, budget tab, and participant sidebar.",
+      "description": "Verify the room workspace renders the room title, secure slug, host role indicator, timeline tab, tasks tab, budget tab, chat tab, invite controls, and participant sidebar.",
       "expected": "The room shell and RBAC host controls are visible."
+    },
+    {
+      "type": "action",
+      "description": "Open the invite popup, verify the invite link and room code fields are visible, then close it.",
+      "expected": "The room provides copy-link, copy-code, and share invite actions."
     },
     {
       "type": "action",
@@ -54,6 +59,11 @@
       "type": "action",
       "description": "Open the Budget tab.",
       "expected": "The budget dashboard shows Total Budget Cap, Total Allocated, Confirmed, Remaining, budget usage, and the Welcome Dinner cost breakdown."
+    },
+    {
+      "type": "action",
+      "description": "Open the Chat tab and send a short message saying 'TestSprite verification message'.",
+      "expected": "The chat panel accepts the message or shows a clear schema warning if the room_messages SQL patch has not been applied."
     },
     {
       "type": "assertion",

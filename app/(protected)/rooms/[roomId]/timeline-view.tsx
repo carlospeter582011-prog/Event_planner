@@ -90,8 +90,8 @@ export default function TimelineView({
   const isHost = role === "HOST";
 
   // Fetch days and activities
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     const { data: daysData } = await supabase
       .from("days")
       .select("*")
@@ -123,11 +123,11 @@ export default function TimelineView({
       ...poll,
       options: [...(poll.options ?? [])].sort((a, b) => a.sequence - b.sequence),
     })));
-    setLoading(false);
+    if (showLoader) setLoading(false);
   }, [roomId, supabase]);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
     const interval = window.setInterval(fetchData, 5000);
     return () => window.clearInterval(interval);
   }, [fetchData]);

@@ -35,17 +35,17 @@ export default function BudgetView({
 
   const isHost = role === "HOST";
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
     const { data } = await supabase
       .from("activity_blocks")
       .select("id, title, status, cost");
     setActivities((data as ActivityRow[] | null) ?? []);
-    setLoading(false);
+    if (showLoader) setLoading(false);
   }, [supabase]);
 
   useEffect(() => {
-    fetchData();
+    fetchData(true);
     const interval = window.setInterval(fetchData, 5000);
     return () => window.clearInterval(interval);
   }, [fetchData]);

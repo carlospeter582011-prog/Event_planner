@@ -1,15 +1,19 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured, missingSupabaseMessage } from "@/lib/supabase/config";
 import { redirect } from "next/navigation";
 
 export default async function LandingPage() {
-  // If already logged in, send them to the dashboard
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const supabaseConfigured = isSupabaseConfigured();
 
-  if (user) redirect("/dashboard");
+  if (supabaseConfigured) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) redirect("/dashboard");
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -47,6 +51,15 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-6 pt-16 pb-24 text-center">
+        {!supabaseConfigured && (
+          <div
+            className="mx-auto mb-6 max-w-3xl rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+            role="alert"
+            data-testid="supabase-config-warning"
+          >
+            {missingSupabaseMessage}
+          </div>
+        )}
         <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300">
           <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
           Real-time collaboration for teams

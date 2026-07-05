@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { redirect } from "next/navigation";
 
 interface PageProps {
@@ -11,6 +12,10 @@ interface PageProps {
  */
 export default async function JoinPage({ searchParams }: PageProps) {
   const { slug } = await searchParams;
+  if (!isSupabaseConfigured()) {
+    redirect("/auth/signin?error=supabase_config_missing");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

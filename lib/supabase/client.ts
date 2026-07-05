@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getSupabaseConfig, missingSupabaseMessage } from "./config";
 
 /**
  * Browser-side Supabase client.
@@ -9,8 +10,11 @@ import { createBrowserClient } from "@supabase/ssr";
  * All query results are typed at the call site instead.
  */
 export function createClient() {
-  return createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  );
+  const config = getSupabaseConfig();
+
+  if (!config) {
+    throw new Error(missingSupabaseMessage);
+  }
+
+  return createBrowserClient(config.url, config.anonKey);
 }

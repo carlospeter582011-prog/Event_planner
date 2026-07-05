@@ -1,0 +1,29 @@
+{
+  "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
+  "type": "frontend",
+  "name": "Synchrona public smoke test",
+  "description": "Verify the deployed Synchrona app loads, exposes the unauthenticated entry flow, and has no visible server error.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to https://event-planner-carlos.vercel.app.",
+      "expected": "The page loads without a 500 error, 404 page, or unhandled application error."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the Synchrona app brand or event-planning interface text is visible.",
+      "expected": "The page includes visible Synchrona branding or event-planning copy."
+    },
+    {
+      "type": "action",
+      "description": "Navigate to /auth/signin if the homepage redirects or exposes a sign-in action.",
+      "expected": "The sign-in route renders successfully."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the sign-in page renders a usable authentication entry form or configuration warning.",
+      "expected": "The page shows either email/password controls or a clear Supabase configuration warning."
+    }
+  ]
+}

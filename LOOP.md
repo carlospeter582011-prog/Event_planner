@@ -16,3 +16,8 @@ Iteration 6: Pushed amended Phase 3 room management commit to origin main -> Bui
 Iteration 7: Added Codex agent provenance proof before continuing website implementation -> Verification pending -> Push pending.
 Iteration 8: Added Phase 5 voting poll creation, live vote distribution, one-vote updates, and Host poll resolution controls in timeline activities -> Verification pending -> Push pending.
 Iteration 9: Verified Phase 5 voting timeline changes with `npm run build` after Vercel deploy concern -> Build passes locally -> Push pending.
+Iteration 10: Pushed Phase 5 voting workflow to origin main for GitHub-connected Vercel deployment and added TestSprite smoke test plan artifact -> TestSprite run pending -> Redeployed via remote sync.
+Iteration 11: Added TestSprite frontend plan JSON for public Synchrona Vercel smoke testing -> TestSprite validation pending -> Push pending.
+Iteration 12: Added Supabase environment guards so Vercel can build and serve public/auth pages without environment variables -> Verification pending -> Push pending.
+Iteration 13: Verified Vercel no-env path by running production build with blank Supabase variables -> Build passes -> Push pending.
+Iteration 14: Validated TestSprite public smoke plan schema with dry-run create -> Plan passes local CLI validation -> Push pending.

@@ -33,6 +33,25 @@ create table if not exists public.room_permission_overrides (
   unique(room_id, user_id)
 );
 
+-- If this table was created by an older patch, CREATE TABLE IF NOT EXISTS
+-- will not add newly introduced columns. Keep this block for safe upgrades.
+alter table public.room_permission_overrides
+add column if not exists can_manage_settings boolean,
+add column if not exists can_manage_budget boolean,
+add column if not exists can_manage_itinerary boolean,
+add column if not exists can_manage_polls boolean,
+add column if not exists can_resolve_polls boolean,
+add column if not exists can_manage_tasks boolean,
+add column if not exists can_create_public_tasks boolean,
+add column if not exists can_delete_items boolean,
+add column if not exists can_manage_users boolean,
+add column if not exists can_vote boolean,
+add column if not exists can_chat boolean,
+add column if not exists can_manage_chat boolean,
+add column if not exists can_manage_comments boolean,
+add column if not exists created_at timestamptz not null default now(),
+add column if not exists updated_at timestamptz not null default now();
+
 create index if not exists idx_room_permission_overrides_room
 on public.room_permission_overrides(room_id);
 

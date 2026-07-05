@@ -58,5 +58,15 @@ export default async function DashboardPage() {
     };
   }) ?? [];
 
-  return <DashboardClient rooms={typedRooms} userId={user!.id} />;
+  return (
+    <DashboardClient
+      rooms={typedRooms}
+      userId={user!.id}
+      userEmail={user!.email ?? ""}
+      userName={
+        (user!.user_metadata?.name as string | undefined) ??
+        (user!.email ? user!.email.split("@")[0] : "Synchrona user")
+      }
+    />
+  );
 }

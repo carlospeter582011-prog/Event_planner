@@ -34,3 +34,5 @@ Iteration 24: Verified Supabase-env production deployment with TestSprite smoke 
 Iteration 25: Updated signup success feedback for disabled Supabase email confirmation before authenticated TestSprite coverage -> Verification pending -> Push pending.
 Iteration 26: Verified disabled-email-confirmation signup copy change with `npm run build` -> Build passes -> Push pending.
 Iteration 27: Added TestSprite authenticated full-site plan using supplied test credentials across auth, rooms, timeline, polls, tasks, and budget -> Verification pending -> Push pending.
+Iteration 28: Added dashboard profile upsert before room creation to repair existing auth users missing profile rows -> Verification pending -> Push pending.
+Iteration 29: Verified profile self-heal room creation fix with `npm run build` -> Build passes -> Push pending.

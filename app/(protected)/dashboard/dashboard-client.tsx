@@ -26,9 +26,16 @@ export interface RoomRow {
 interface DashboardClientProps {
   rooms: RoomRow[];
   userId: string;
+  userEmail: string;
+  userName: string;
 }
 
-export default function DashboardClient({ rooms, userId }: DashboardClientProps) {
+export default function DashboardClient({
+  rooms,
+  userId,
+  userEmail,
+  userName,
+}: DashboardClientProps) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
   const [joinSlug, setJoinSlug] = useState("");
@@ -48,6 +55,19 @@ export default function DashboardClient({ rooms, userId }: DashboardClientProps)
     const slug = generateSlug();
 
     try {
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert(
+          {
+            id: userId,
+            email: userEmail,
+            name: userName,
+          },
+          { onConflict: "id" },
+        );
+
+      if (profileError) throw profileError;
+
       // Insert room
       const { data: room, error: roomError } = await supabase
         .from("rooms")

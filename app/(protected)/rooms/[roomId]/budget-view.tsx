@@ -306,7 +306,10 @@ function BudgetCard({
       <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
         {label}
       </p>
-      <p className={`mt-1 text-2xl font-bold ${colorMap[color]} dark:text-${color}-400`}>
+      <p
+        className={`mt-1 break-words text-xl font-bold leading-tight sm:text-2xl ${colorMap[color]} dark:text-${color}-400`}
+        title={value}
+      >
         {value}
       </p>
     </div>

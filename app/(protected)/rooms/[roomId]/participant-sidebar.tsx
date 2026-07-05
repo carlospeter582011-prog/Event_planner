@@ -60,6 +60,7 @@ export default function ParticipantSidebar({
   onParticipantsChanged,
 }: ParticipantSidebarProps) {
   const [updatingPermission, setUpdatingPermission] = useState<string | null>(null);
+  const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
   const isCurrentUserHost = currentRole === "HOST";
 
   function getOverride(userId: string) {
@@ -114,6 +115,11 @@ export default function ParticipantSidebar({
   const currentPermissions = currentParticipant
     ? getPermissions(currentParticipant)
     : resolveRoomPermissions(currentRole);
+  const selectedParticipant =
+    participants.find((participant) => participant.id === selectedParticipantId) ??
+    participants.find((participant) => participant.role !== "HOST") ??
+    participants[0] ??
+    null;
 
   return (
     <aside
@@ -141,9 +147,15 @@ export default function ParticipantSidebar({
             const isCurrentUser = profile?.id === currentUserId;
 
             return (
-              <div
+              <button
                 key={participant.id}
-                className="flex items-center justify-between gap-3 rounded-md border border-transparent p-2 hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-800 dark:hover:bg-slate-800/60"
+                type="button"
+                onClick={() => isCurrentUserHost && setSelectedParticipantId(participant.id)}
+                className={`flex w-full items-center justify-between gap-3 rounded-md border p-2 text-left transition-colors ${
+                  selectedParticipant?.id === participant.id && isCurrentUserHost
+                    ? "border-brand-300 bg-brand-50 dark:border-brand-800 dark:bg-brand-950/30"
+                    : "border-transparent hover:border-slate-200 hover:bg-slate-50 dark:hover:border-slate-800 dark:hover:bg-slate-800/60"
+                }`}
                 data-testid={`participant-${participant.id}`}
               >
                 <div className="flex min-w-0 items-center gap-2">
@@ -164,7 +176,7 @@ export default function ParticipantSidebar({
                 <Badge variant="role" value={participant.role}>
                   {participant.role}
                 </Badge>
-              </div>
+              </button>
             );
           })}
         </div>
@@ -183,19 +195,20 @@ export default function ParticipantSidebar({
               Toggle exact room abilities for each collaborator.
             </p>
           </div>
-          <div className="space-y-3 text-xs">
-            {participants.map((participant) => {
-              const userId = participant.profile?.id;
-              const displayName = participant.profile?.name || "Unknown participant";
-              const permissions = getPermissions(participant);
-              const isLockedHost = participant.role === "HOST";
+          {selectedParticipant ? (
+            <div className="text-xs">
+              {(() => {
+                const participant = selectedParticipant;
+                const userId = participant.profile?.id;
+                const displayName = participant.profile?.name || "Unknown participant";
+                const permissions = getPermissions(participant);
+                const isLockedHost = participant.role === "HOST";
 
-              return (
-                <article
-                  key={participant.id}
-                  className="rounded-md bg-white p-3 dark:bg-slate-900"
-                  data-testid={`permission-toggle-panel-${participant.id}`}
-                >
+                return (
+                  <article
+                    className="rounded-md bg-white p-3 dark:bg-slate-900"
+                    data-testid={`permission-toggle-panel-${participant.id}`}
+                  >
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <div className="min-w-0">
                       <p className="truncate font-semibold text-slate-900 dark:text-white">
@@ -249,12 +262,17 @@ export default function ParticipantSidebar({
                           })}
                         </div>
                       </div>
-                    ))}
+                      ))}
                   </div>
                 </article>
-              );
-            })}
-          </div>
+                );
+              })()}
+            </div>
+          ) : (
+            <p className="text-xs text-brand-800 dark:text-brand-200">
+              Select a participant to edit permissions.
+            </p>
+          )}
         </section>
       )}
 

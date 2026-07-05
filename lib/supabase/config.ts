@@ -1,5 +1,5 @@
 export function getSupabaseConfig() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!url || !anonKey) {
@@ -15,3 +15,11 @@ export function isSupabaseConfigured() {
 
 export const missingSupabaseMessage =
   "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable authentication and collaborative rooms.";
+
+function normalizeSupabaseUrl(url: string | undefined) {
+  if (!url) {
+    return undefined;
+  }
+
+  return url.trim().replace(/\/rest\/v1\/?$/, "");
+}

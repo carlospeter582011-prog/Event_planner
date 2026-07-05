@@ -46,3 +46,4 @@ Iteration 36: Added Command Center room overview, Host User Controller role cont
 Iteration 37: Added granular room permission toggles, poll RLS SQL patch, unlimited poll options, private/public to-dos, generic comments, chat/comment moderation, duplicate-room join protection, budget usage fix, and expanded TestSprite plans -> Build passes -> Push pending.
 Iteration 38: Fixed large budget values overflowing budget cards and changed Host User Controller to show permissions for one selected participant at a time -> Build passes -> Push pending.
 Iteration 39: Hardened budget cards, usage labels, and activity cost rows against huge currency values with zero-min grid tracks and forced wrapping -> Build passes -> Push pending.
+Iteration 40: Fixed room permission override RLS bootstrap by explicitly allowing room hosts to insert/update override rows before delegated manage-users permissions exist -> SQL patch updated -> Push pending.

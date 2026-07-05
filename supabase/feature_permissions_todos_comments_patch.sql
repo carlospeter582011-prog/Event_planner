@@ -181,8 +181,14 @@ create policy "Permission managers can manage room permission overrides"
 on public.room_permission_overrides
 for all
 to authenticated
-using (public.can_room(room_id, auth.uid(), 'manage_users'))
-with check (public.can_room(room_id, auth.uid(), 'manage_users'));
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_users')
+)
+with check (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_users')
+);
 
 -- ---------------------------------------------------------------------
 -- Safer participant policies: users cannot overwrite their own role

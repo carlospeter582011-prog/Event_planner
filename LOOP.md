@@ -23,3 +23,5 @@ Iteration 13: Verified Vercel no-env path by running production build with blank
 Iteration 14: Validated TestSprite public smoke plan schema with dry-run create -> Plan passes local CLI validation -> Push pending.
 Iteration 15: Fixed Vercel build failure by marking Supabase-dependent dashboard, room, and join routes dynamic with no-env redirects -> Verification pending -> Push pending.
 Iteration 16: Verified dynamic protected-route fix with blank Supabase variables using `npm run build` -> Build passes -> Push pending.
+Iteration 17: Added vercel.json to override incorrect Vercel output directory setting from `public` to Next.js `.next` output -> Verification pending -> Push pending.
+Iteration 18: Verified vercel.json output-directory override still builds with blank Supabase variables using `npm run build` -> Build passes -> Push pending.

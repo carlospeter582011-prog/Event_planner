@@ -1,8 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { redirect } from "next/navigation";
 import DashboardClient from "./dashboard-client";
 import type { RoomRow } from "./dashboard-client";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
+  if (!isSupabaseConfigured()) {
+    redirect("/auth/signin?error=supabase_config_missing");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

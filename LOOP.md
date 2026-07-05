@@ -21,3 +21,5 @@ Iteration 11: Added TestSprite frontend plan JSON for public Synchrona Vercel sm
 Iteration 12: Added Supabase environment guards so Vercel can build and serve public/auth pages without environment variables -> Verification pending -> Push pending.
 Iteration 13: Verified Vercel no-env path by running production build with blank Supabase variables -> Build passes -> Push pending.
 Iteration 14: Validated TestSprite public smoke plan schema with dry-run create -> Plan passes local CLI validation -> Push pending.
+Iteration 15: Fixed Vercel build failure by marking Supabase-dependent dashboard, room, and join routes dynamic with no-env redirects -> Verification pending -> Push pending.
+Iteration 16: Verified dynamic protected-route fix with blank Supabase variables using `npm run build` -> Build passes -> Push pending.

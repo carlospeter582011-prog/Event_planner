@@ -1,7 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { redirect } from "next/navigation";
 import RoomClient from "./room-client";
 import type { Role } from "@/types";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ roomId: string }>;
@@ -9,6 +12,10 @@ interface PageProps {
 
 export default async function RoomPage({ params }: PageProps) {
   const { roomId } = await params;
+  if (!isSupabaseConfigured()) {
+    redirect("/auth/signin?error=supabase_config_missing");
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

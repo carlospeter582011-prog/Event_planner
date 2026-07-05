@@ -47,3 +47,4 @@ Iteration 37: Added granular room permission toggles, poll RLS SQL patch, unlimi
 Iteration 38: Fixed large budget values overflowing budget cards and changed Host User Controller to show permissions for one selected participant at a time -> Build passes -> Push pending.
 Iteration 39: Hardened budget cards, usage labels, and activity cost rows against huge currency values with zero-min grid tracks and forced wrapping -> Build passes -> Push pending.
 Iteration 40: Fixed room permission override RLS bootstrap by explicitly allowing room hosts to insert/update override rows before delegated manage-users permissions exist -> SQL patch updated -> Push pending.
+Iteration 41: Updated resume.md handoff with granular permissions, comments, private/public to-dos, SQL patch history, TestSprite coverage, recent commits, and next steps -> Documentation only -> Push pending.

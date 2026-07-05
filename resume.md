@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Synchrona is a TestSprite Hackathon project: a real-time collaborative event planner for multi-day event rooms. Authenticated users can create secure rooms, invite others by full link or room code, build day-by-day itineraries, create activity voting polls, manage task checklists, track budget usage, and collaborate through room chat.
+Synchrona is a TestSprite Hackathon project: a real-time collaborative event planner for multi-day event rooms. Authenticated users can create secure rooms, invite others by full link or room code, build day-by-day itineraries, create activity voting polls with expandable options, manage private/public to-do lists, write comments across room surfaces, track budget usage, and collaborate through moderated room chat.
 
 The app is a Next.js 16 App Router project with Supabase Auth, Supabase database tables/RLS/realtime, Tailwind CSS, and TestSprite frontend test plans.
 
@@ -11,9 +11,9 @@ The app is a Next.js 16 App Router project with Supabase Auth, Supabase database
 - Workspace: `E:\Testsprite_H\Event_Planner`
 - GitHub remote: `https://github.com/carlospeter582011-prog/Event_planner`
 - Production URL: `https://event-planner-carlos.vercel.app`
-- Latest pushed commit at the time of this file: `ae2a54f fix(room): make background refresh silent`
-- Latest confirmed Vercel production deployment: `dpl_BikqP7RxgeuDdenEKp5mvB7fuDrS`
-- Working tree was clean when this file was created.
+- Latest pushed commit at the time of this file: `d8e7302 fix(sql): allow hosts to manage permission overrides`
+- Latest verified local build: `npm run build` passed after `384107d fix(budget): contain huge currency values`.
+- Working tree was clean when this file was updated.
 
 ## Environment
 
@@ -62,6 +62,7 @@ The app normalizes accidental Supabase URLs ending in `/rest/v1` in `lib/supabas
   - copy code
   - native share fallback
 - Direct browser room URLs still work.
+- Joining a room the user is already in no longer upserts `VIEWER` and no longer overwrites the user's existing role.
 
 ### Room Workspace
 
@@ -84,13 +85,40 @@ Command Center summarizes room health for TestSprite and human reviewers:
 
 Timeline supports days, activities, activity costs/status/location/time, voting polls, voting, and host poll resolution.
 
-Tasks supports task creation, priority, due date, completion toggle, filters, and progress.
+Timeline now also has timeline-level comments and per-activity comments through `comments-panel.tsx`.
 
-Budget shows budget cap, allocated, confirmed, remaining, usage bar, cost breakdown, and warning if over budget.
+Polls now support more than five options by using the `Add option` control. The previous 2-to-5 option limit was removed.
 
-Chat tab exists in `chat-view.tsx` and depends on the `room_messages` SQL table.
+Tasks now supports private and public room to-dos:
+- private to-dos are owned by a single user
+- public to-dos are room-visible
+- public to-do creation is controlled by the `create_public_tasks` permission
+- to-dos have checkboxes, filters, owner-aware mutation controls, and comments
 
-Host controls now include a visible Host User Controller in `participant-sidebar.tsx`. Hosts can update non-host participants between `EDITOR` and `VIEWER`, and the sidebar renders capability summaries for `HOST`, `EDITOR`, and `VIEWER`.
+Budget shows budget cap, allocated, confirmed, remaining, usage bar, cost breakdown, warning if over budget, and budget comments.
+
+Budget UI was hardened so very large currency values stay inside their cards using zero-min grid tracks, forced wrapping, and overflow constraints.
+
+Chat tab exists in `chat-view.tsx` and depends on the `room_messages` SQL table. Users can delete their own messages. Users with `manage_chat` can delete any message and clear the whole room chat.
+
+Generic comments are implemented in `app/(protected)/rooms/[roomId]/comments-panel.tsx` for timeline, activities, budget, and to-dos. Users can delete their own comments. Users with `manage_comments` can delete any comment and clear comments for a surface.
+
+Host controls now use granular permission toggles in `participant-sidebar.tsx`, not just Editor/Viewer role selection. The host clicks one participant in the participant list and the Host User Controller shows only that selected participant's permissions.
+
+Granular permission keys currently used in the app:
+- `manage_settings`
+- `manage_budget`
+- `manage_itinerary`
+- `manage_polls`
+- `resolve_polls`
+- `manage_tasks`
+- `create_public_tasks`
+- `delete_items`
+- `manage_users`
+- `vote`
+- `chat`
+- `manage_chat`
+- `manage_comments`
 
 ### Realtime and Silent Refresh
 
@@ -107,59 +135,27 @@ The full intended schema is in `supabase/schema.sql`.
 
 If the live Supabase project is missing main tables, run the full schema from `supabase/schema.sql` in Supabase SQL Editor. A previous error showed `relation "public.room_participants" does not exist`, which means the schema had not been applied.
 
-If main tables already exist but chat is missing, run this chat patch:
+After running `supabase/schema.sql`, run the newest feature patch:
 
-```sql
-create table if not exists public.room_messages (
-  id uuid primary key default gen_random_uuid(),
-  room_id uuid not null references public.rooms(id) on delete cascade,
-  user_id uuid not null references public.profiles(id) on delete cascade,
-  body text not null check (char_length(body) between 1 and 500),
-  created_at timestamptz not null default now()
-);
-
-create index if not exists idx_room_messages_room_created
-on public.room_messages(room_id, created_at);
-
-alter table public.room_messages enable row level security;
-
-drop policy if exists "Participants can view room messages" on public.room_messages;
-drop policy if exists "Participants can send room messages" on public.room_messages;
-
-create policy "Participants can view room messages"
-on public.room_messages
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.room_participants rp
-    where rp.room_id = room_messages.room_id
-      and rp.user_id = auth.uid()
-  )
-);
-
-create policy "Participants can send room messages"
-on public.room_messages
-for insert
-to authenticated
-with check (
-  user_id = auth.uid()
-  and exists (
-    select 1
-    from public.room_participants rp
-    where rp.room_id = room_messages.room_id
-      and rp.user_id = auth.uid()
-  )
-);
-
-do $$
-begin
-  alter publication supabase_realtime add table public.room_messages;
-exception
-  when duplicate_object then null;
-end $$;
+```powershell
+supabase/feature_permissions_todos_comments_patch.sql
 ```
+
+That patch adds or updates:
+- `room_permission_overrides`
+- permission helper functions: `get_room_role`, `is_room_host`, `can_room`
+- private/public task columns and task RLS
+- poll and poll option RLS fixes
+- vote RLS using `can_room`
+- chat send/delete moderation policies
+- `room_comments`
+- realtime publication entries for new tables
+
+Important SQL history:
+- `6595b73 fix(sql): add missing permission columns` added `alter table ... add column if not exists` because older deployments already had `room_permission_overrides` without newer columns such as `can_create_public_tasks`.
+- `d8e7302 fix(sql): allow hosts to manage permission overrides` fixed `new row violates row-level security policy for table "room_permission_overrides"` by allowing direct room hosts via `is_room_host(...)` in the override management policy.
+
+If Supabase reports missing permission columns or RLS failures for `room_permission_overrides`, rerun the full `feature_permissions_todos_comments_patch.sql` file.
 
 ## TestSprite
 
@@ -172,7 +168,7 @@ Existing tests:
 - Public smoke test: `f64fda4a-144a-4b90-9aa8-a822c1f2aedf`
 - Authenticated full-site test: `305b4e20-b1f0-4646-b064-5f5d74eb7993`
 
-The authenticated plan has been expanded to cover the Command Center, readiness metrics, permission matrix, and Host User Controller in addition to rooms, invites, timeline, polls, tasks, budget, and chat.
+The authenticated plan has been expanded to cover the Command Center, readiness metrics, permission matrix, granular Host User Controller toggles, expandable poll options, private/public to-dos, comments, budget comments, chat moderation, and duplicate-room join protection.
 
 Known passing run:
 - Authenticated run `65f0747f-2b81-46bc-a3ea-2ec6679f04c5` passed after the profile self-heal room-creation fix.
@@ -181,11 +177,13 @@ Recent run:
 - Run `45ae8c15-57c4-4ec4-bb28-8dd5622148fb` was started after SQL/chat changes but remained `running` after extended polling. It did not produce a pass/fail verdict during the previous chat.
 
 Tracked plans:
+- `testsprite_tests/README.md`
 - `testsprite_tests/synchrona_public_smoke.plan.json`
 - `testsprite_tests/synchrona_authenticated_full_site.plan.json`
+- `testsprite_tests/synchrona_command_center_host_controls.plan.json`
 - `testsprite_tests/synchrona_phase5_smoke_test.md`
 
-The authenticated plan now includes a full project description for TestSprite: room creation, invite controls, timeline, polls, tasks, budget, and chat.
+The authenticated plan now includes a full project description for TestSprite: room creation, invite controls, Command Center, granular permissions, timeline, polls, private/public to-dos, comments, budget, and chat moderation.
 
 Test account used by the user:
 - Email: `carlospeter582011@gmail.com`
@@ -220,23 +218,27 @@ vercel inspect <deployment-url>
 
 ## Recent Commit Summary
 
+- `d8e7302 fix(sql): allow hosts to manage permission overrides`
+- `384107d fix(budget): contain huge currency values`
+- `6595b73 fix(sql): add missing permission columns`
+- `1a5cb51 fix(room): improve budget and permission controls`
+- `e58e3ad feat(room): add granular permissions and comments`
+- `7725583 feat(room): add command center and host controls`
 - `ae2a54f fix(room): make background refresh silent`
-- `61f9043 feat(room): improve invites and live refresh`
-- `9c2b7bb test(testsprite): record authenticated flow pass`
-- `59beead fix(room): ensure profile before creation`
-- `8102eee test(testsprite): add authenticated full site plan`
-- `130c892 fix(auth): update signup success copy`
-- `5236c4f chore(config): wire supabase public env example`
 
 ## Recommended Next Steps
 
-1. Confirm the full schema exists in Supabase, especially `rooms`, `room_participants`, `days`, `activity_blocks`, `tasks`, and `room_messages`.
-2. Rerun the authenticated TestSprite test after schema confirmation.
-3. If TestSprite hangs again, inspect artifacts or create a narrower plan for:
+1. Confirm the full schema exists in Supabase, especially `rooms`, `room_participants`, `days`, `activity_blocks`, `tasks`, `room_messages`, `room_permission_overrides`, and `room_comments`.
+2. Run or rerun `supabase/feature_permissions_todos_comments_patch.sql` after `supabase/schema.sql`.
+3. Rerun the authenticated TestSprite test after schema confirmation.
+4. If TestSprite hangs again, inspect artifacts or create a narrower plan for:
    - login
    - create room
    - open invite popup
-   - paste full invite link into join modal
-   - open chat and send message
-4. Consider adding structured comments per activity/task if requested. This needs new SQL tables such as `activity_comments` or a polymorphic `comments` table.
+   - open Command tab
+   - toggle one selected user's permission
+   - create a poll with more than five options
+   - create private and public to-dos
+   - add comments
+   - open chat, send, delete, and clear if allowed
 5. Keep app refresh behavior invisible during background polling.

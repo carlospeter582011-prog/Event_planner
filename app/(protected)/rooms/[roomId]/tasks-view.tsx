@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,7 @@ interface TaskRow {
 }
 
 export default function TasksView({ roomId, role, userId }: TasksViewProps) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
@@ -48,6 +48,8 @@ export default function TasksView({ roomId, role, userId }: TasksViewProps) {
 
   useEffect(() => {
     fetchTasks();
+    const interval = window.setInterval(fetchTasks, 5000);
+    return () => window.clearInterval(interval);
   }, [fetchTasks]);
 
   // Realtime

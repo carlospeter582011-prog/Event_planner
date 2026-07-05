@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
-import { formatCurrency, generateSlug } from "@/lib/utils";
+import { formatCurrency, generateSlug, isUuid, parseRoomIdentifier } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
@@ -111,20 +111,29 @@ export default function DashboardClient({
 
   async function handleJoinRoom(e: React.FormEvent) {
     e.preventDefault();
-    if (!joinSlug.trim()) return;
+    const roomCode = parseRoomIdentifier(joinSlug);
+    if (!roomCode) return;
     setLoading(true);
 
     const supabase = createClient();
 
     try {
-      // Look up room by slug
-      const { data: room, error } = await supabase
+      const { data: roomBySlug, error: slugError } = await supabase
         .from("rooms")
         .select("id")
-        .eq("slug", joinSlug.trim())
-        .single();
+        .eq("slug", roomCode)
+        .maybeSingle();
 
-      if (error || !room) throw new Error("Room not found. Check the link and try again.");
+      const { data: roomById, error: idError } =
+        !roomBySlug && isUuid(roomCode)
+          ? await supabase.from("rooms").select("id").eq("id", roomCode).maybeSingle()
+          : { data: null, error: null };
+
+      const room = roomBySlug ?? roomById;
+
+      if (slugError || idError || !room) {
+        throw new Error("Room not found. Paste the invite link or room code and try again.");
+      }
 
       // Add as VIEWER (ignore conflict if already a participant)
       const { error: insertError } = await supabase
@@ -338,11 +347,12 @@ export default function DashboardClient({
               placeholder="Paste the room link or UUID slug"
               value={joinSlug}
               onChange={(e) => setJoinSlug(e.target.value)}
+              onBlur={(e) => setJoinSlug(parseRoomIdentifier(e.target.value))}
               className="input"
               data-testid="join-room-slug"
             />
             <p className="mt-1 text-xs text-slate-500">
-              Ask the room host for the invite link.
+              Paste the full invite URL or only the room code. Full links are cleaned automatically.
             </p>
           </div>
           <div className="mt-6 flex justify-end gap-2">

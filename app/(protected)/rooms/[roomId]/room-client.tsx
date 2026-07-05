@@ -11,8 +11,10 @@ import type { Role } from "@/types";
 import TimelineView from "./timeline-view";
 import TasksView from "./tasks-view";
 import BudgetView from "./budget-view";
+import ChatView from "./chat-view";
 import ParticipantSidebar from "./participant-sidebar";
 import RoomNavigation, { type RoomTab } from "./room-navigation";
+import Modal from "@/components/ui/modal";
 
 interface RoomClientProps {
   room: Record<string, unknown>;
@@ -43,6 +45,7 @@ export default function RoomClient({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<RoomTab>("timeline");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const host = room.host as { id: string; name: string; avatar_url: string | null };
@@ -75,14 +78,32 @@ export default function RoomClient({
     router.refresh();
   }
 
-  async function copyInviteLink() {
-    const inviteUrl = `${window.location.origin}/rooms/${roomSlug}`;
+  const inviteUrl =
+    typeof window === "undefined" ? "" : `${window.location.origin}/rooms/${roomSlug}`;
+
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied.`);
+    } catch {
+      toast.error(`Could not copy ${label.toLowerCase()}.`);
+    }
+  }
+
+  async function shareInvite() {
+    if (!navigator.share) {
+      await copyText(inviteUrl, "Invite link");
+      return;
+    }
 
     try {
-      await navigator.clipboard.writeText(inviteUrl);
-      toast.success("Invite link copied.");
+      await navigator.share({
+        title: roomTitle,
+        text: `Join ${roomTitle} on Synchrona.`,
+        url: inviteUrl,
+      });
     } catch {
-      toast.error("Could not copy invite link. Use the room URL instead.");
+      toast.error("Share was cancelled.");
     }
   }
 
@@ -160,7 +181,7 @@ export default function RoomClient({
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={copyInviteLink}
+              onClick={() => setInviteOpen(true)}
               className="btn-secondary text-sm"
               data-testid="btn-copy-link"
             >
@@ -230,6 +251,9 @@ export default function RoomClient({
                 roomBudgetCap={roomBudgetCap}
               />
             )}
+            {activeTab === "chat" && (
+              <ChatView roomId={roomId} userId={userId} role={role} />
+            )}
           </div>
 
           {role !== "HOST" && (
@@ -258,6 +282,65 @@ export default function RoomClient({
           </div>
         </div>
       </div>
+
+      <Modal
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        title="Invite to room"
+      >
+        <div className="space-y-4" data-testid="invite-dialog">
+          <div>
+            <label className="label" htmlFor="invite-link">
+              Invite link
+            </label>
+            <input
+              id="invite-link"
+              readOnly
+              value={inviteUrl}
+              className="input font-mono text-xs"
+              data-testid="invite-link-input"
+            />
+          </div>
+          <div>
+            <label className="label" htmlFor="invite-code">
+              Room code
+            </label>
+            <input
+              id="invite-code"
+              readOnly
+              value={roomSlug}
+              className="input font-mono text-xs"
+              data-testid="invite-code-input"
+            />
+          </div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={() => copyText(inviteUrl, "Invite link")}
+              className="btn-secondary justify-center text-sm"
+              data-testid="invite-copy-link"
+            >
+              Copy link
+            </button>
+            <button
+              type="button"
+              onClick={() => copyText(roomSlug, "Room code")}
+              className="btn-secondary justify-center text-sm"
+              data-testid="invite-copy-code"
+            >
+              Copy code
+            </button>
+            <button
+              type="button"
+              onClick={shareInvite}
+              className="btn-primary justify-center text-sm"
+              data-testid="invite-share"
+            >
+              Share
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

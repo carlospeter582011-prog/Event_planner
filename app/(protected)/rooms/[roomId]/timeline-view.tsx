@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,7 @@ export default function TimelineView({
   role,
   userId,
 }: TimelineViewProps) {
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
   const [days, setDays] = useState<DayRow[]>([]);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
   const [polls, setPolls] = useState<PollRow[]>([]);
@@ -128,6 +128,8 @@ export default function TimelineView({
 
   useEffect(() => {
     fetchData();
+    const interval = window.setInterval(fetchData, 5000);
+    return () => window.clearInterval(interval);
   }, [fetchData]);
 
   // Realtime subscriptions

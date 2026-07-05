@@ -77,3 +77,31 @@ export function generateSlug(): string {
   }
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
+
+/** Extract a room id/slug from a raw code, /rooms URL, or /join?slug URL. */
+export function parseRoomIdentifier(value: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+
+  try {
+    const url = new URL(raw);
+    const querySlug = url.searchParams.get("slug");
+    if (querySlug) return querySlug.trim();
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const roomsIndex = parts.indexOf("rooms");
+    if (roomsIndex >= 0 && parts[roomsIndex + 1]) {
+      return decodeURIComponent(parts[roomsIndex + 1]).trim();
+    }
+
+    return decodeURIComponent(parts[parts.length - 1] ?? "").trim();
+  } catch {
+    return raw.replace(/^\/?rooms\//, "").split(/[?#]/)[0].trim();
+  }
+}
+
+export function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
+}

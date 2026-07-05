@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { isUuid, parseRoomIdentifier } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ interface PageProps {
  */
 export default async function JoinPage({ searchParams }: PageProps) {
   const { slug } = await searchParams;
+  const roomCode = parseRoomIdentifier(slug ?? "");
   if (!isSupabaseConfigured()) {
     redirect("/auth/signin?error=supabase_config_missing");
   }
@@ -24,17 +26,23 @@ export default async function JoinPage({ searchParams }: PageProps) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect(`/auth/signin?redirect=${encodeURIComponent(`/join?slug=${slug || ""}`)}`);
+    redirect(`/auth/signin?redirect=${encodeURIComponent(`/join?slug=${roomCode}`)}`);
   }
 
-  if (!slug) redirect("/dashboard");
+  if (!roomCode) redirect("/dashboard");
 
-  // Find room by slug
-  const { data: room } = await supabase
+  const { data: roomBySlug } = await supabase
     .from("rooms")
     .select("id")
-    .eq("slug", slug)
-    .single();
+    .eq("slug", roomCode)
+    .maybeSingle();
+
+  const { data: roomById } =
+    !roomBySlug && isUuid(roomCode)
+      ? await supabase.from("rooms").select("id").eq("id", roomCode).maybeSingle()
+      : { data: null };
+
+  const room = roomBySlug ?? roomById;
 
   if (!room) redirect("/dashboard?error=room_not_found");
 

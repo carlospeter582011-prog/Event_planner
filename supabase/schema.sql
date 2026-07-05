@@ -178,6 +178,18 @@ CREATE INDEX idx_tasks_room ON public.tasks(room_id);
 CREATE INDEX idx_tasks_activity ON public.tasks(activity_block_id);
 CREATE INDEX idx_tasks_completed ON public.tasks(room_id, is_completed);
 
+-- 11. room_messages table (small per-room chat)
+CREATE TABLE public.room_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id UUID NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  body TEXT NOT NULL CHECK (char_length(body) BETWEEN 1 AND 500),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_room_messages_room_created
+  ON public.room_messages(room_id, created_at);
+
 -- ====================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- Enable RLS on all tables
@@ -192,6 +204,7 @@ ALTER TABLE public.polls ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.poll_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.votes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.room_messages ENABLE ROW LEVEL SECURITY;
 
 -- --- profiles ---
 -- Everyone authenticated can read profiles; users can update their own
@@ -439,6 +452,26 @@ CREATE POLICY "Editors can manage tasks"
     )
   );
 
+-- --- room_messages ---
+CREATE POLICY "Participants can view room messages"
+  ON public.room_messages FOR SELECT
+  TO authenticated
+  USING (
+    room_id IN (
+      SELECT room_id FROM public.room_participants WHERE user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Participants can send room messages"
+  ON public.room_messages FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    user_id = auth.uid()
+    AND room_id IN (
+      SELECT room_id FROM public.room_participants WHERE user_id = auth.uid()
+    )
+  );
+
 -- ====================================================================
 -- REALTIME
 -- Enable Realtime for key tables so Supabase Realtime subscriptions work
@@ -453,6 +486,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.poll_options;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.votes;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tasks;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.room_messages;
 
 -- ====================================================================
 -- DONE!

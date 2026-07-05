@@ -1,6 +1,6 @@
 "use client";
 
-type RoomTab = "timeline" | "tasks" | "budget";
+type RoomTab = "timeline" | "tasks" | "budget" | "chat";
 
 interface RoomNavigationProps {
   activeTab: RoomTab;
@@ -26,6 +26,11 @@ const tabs: { id: RoomTab; label: string; description: string }[] = [
     label: "Budget",
     description: "Cap and allocation",
   },
+  {
+    id: "chat",
+    label: "Chat",
+    description: "Room messages",
+  },
 ];
 
 export type { RoomTab };
@@ -42,7 +47,7 @@ export default function RoomNavigation({
       aria-label="Room workspace sections"
       data-testid="room-navigation"
     >
-      <div className="grid gap-1 sm:grid-cols-3">
+      <div className="grid gap-1 sm:grid-cols-4">
         {tabs.map((tab) => (
           <button
             key={tab.id}

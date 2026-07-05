@@ -41,3 +41,4 @@ Iteration 31: Added full invite-link parsing, invite copy/share dialog, chat tab
 Iteration 32: Verified invite parsing, share dialog, chat scaffold, and polling fallback changes with `npm run build` -> Build passes -> Push pending.
 Iteration 33: Changed room timeline, tasks, and budget polling to refresh silently without visible loading states and expanded TestSprite full-project description -> Verification pending -> Push pending.
 Iteration 34: Verified silent background refresh and expanded TestSprite project-plan context with `npm run build` -> Build passes -> Push pending.
+Iteration 35: Added root `resume.md` handoff with project architecture, deployment, Supabase SQL, TestSprite state, recent commits, and next steps for a fresh AI chat -> Verification not required -> Push pending.

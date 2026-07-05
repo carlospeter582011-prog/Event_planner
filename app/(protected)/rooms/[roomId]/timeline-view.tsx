@@ -8,12 +8,14 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Spinner } from "@/components/ui/spinner";
 import Modal from "@/components/ui/modal";
 import { formatCurrency, formatDate, formatTime, midpoint } from "@/lib/utils";
-import type { Role, ActivityStatus, PollStatus } from "@/types";
+import type { Role, ActivityStatus, PollStatus, RoomPermissions } from "@/types";
+import CommentsPanel from "./comments-panel";
 
 interface TimelineViewProps {
   roomId: string;
   role: Role;
   userId: string;
+  permissions: RoomPermissions;
 }
 
 interface DayRow {
@@ -62,6 +64,7 @@ export default function TimelineView({
   roomId,
   role,
   userId,
+  permissions,
 }: TimelineViewProps) {
   const supabase = useMemo(() => createClient(), []);
   const [days, setDays] = useState<DayRow[]>([]);
@@ -84,10 +87,13 @@ export default function TimelineView({
     activityTitle: string;
   }>({ open: false, activityId: "", activityTitle: "" });
   const [pollQuestion, setPollQuestion] = useState("Which option should we choose?");
-  const [pollOptions, setPollOptions] = useState(["", "", "", "", ""]);
+  const [pollOptions, setPollOptions] = useState(["", ""]);
 
-  const canEdit = role === "HOST" || role === "EDITOR";
-  const isHost = role === "HOST";
+  const canEdit = permissions.manage_itinerary;
+  const canDelete = permissions.delete_items;
+  const canCreatePoll = permissions.manage_polls;
+  const canResolvePoll = permissions.resolve_polls;
+  const canVote = permissions.vote;
 
   // Fetch days and activities
   const fetchData = useCallback(async (showLoader = false) => {
@@ -251,8 +257,8 @@ export default function TimelineView({
     e.preventDefault();
     const options = pollOptions.map((option) => option.trim()).filter(Boolean);
 
-    if (options.length < 2 || options.length > 5) {
-      toast.error("Add 2 to 5 poll options.");
+    if (options.length < 2) {
+      toast.error("Add at least 2 poll options.");
       return;
     }
 
@@ -291,11 +297,11 @@ export default function TimelineView({
     toast.success("Poll created.");
     setPollModal({ open: false, activityId: "", activityTitle: "" });
     setPollQuestion("Which option should we choose?");
-    setPollOptions(["", "", "", "", ""]);
+    setPollOptions(["", ""]);
   }
 
   async function handleVote(poll: PollRow, option: PollOptionRow) {
-    if (poll.status !== "OPEN") return;
+    if (poll.status !== "OPEN" || !canVote) return;
     setMutationLoading(`vote-${option.id}`);
     const existingVote = poll.options
       .flatMap((item) => item.votes)
@@ -324,7 +330,7 @@ export default function TimelineView({
     poll: PollRow,
     option: PollOptionRow,
   ) {
-    if (!isHost) return;
+    if (!canResolvePoll) return;
     setMutationLoading(`resolve-${poll.id}`);
 
     const { error: pollError } = await supabase
@@ -405,6 +411,15 @@ export default function TimelineView({
 
   return (
     <div data-testid="timeline-view">
+      <div className="mb-4">
+        <CommentsPanel
+          roomId={roomId}
+          userId={userId}
+          permissions={permissions}
+          targetType="TIMELINE"
+          title="Timeline comments"
+        />
+      </div>
       {/* Add Day button */}
       {canEdit && (
         <div className="mb-4 flex justify-end">
@@ -537,18 +552,29 @@ export default function TimelineView({
                               {act.description}
                             </p>
                           )}
+                          <div className="mt-3">
+                            <CommentsPanel
+                              roomId={roomId}
+                              userId={userId}
+                              permissions={permissions}
+                              targetType="ACTIVITY"
+                              targetId={act.id}
+                              title="Activity comments"
+                            />
+                          </div>
                           {poll ? (
                             <PollPanel
                               activity={act}
                               poll={poll}
                               userId={userId}
-                              isHost={isHost}
+                              canVote={canVote}
+                              canResolvePoll={canResolvePoll}
                               mutationLoading={mutationLoading}
                               onVote={handleVote}
                               onResolve={handleResolvePoll}
                             />
                           ) : (
-                            canEdit && act.status !== "CONFIRMED" && (
+                            canCreatePoll && act.status !== "CONFIRMED" && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -800,8 +826,28 @@ export default function TimelineView({
                   data-testid={`poll-option-${index + 1}`}
                 />
               ))}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPollOptions((current) => [...current, ""])}
+                  className="btn-secondary px-3 py-1.5 text-xs"
+                  data-testid="poll-add-option"
+                >
+                  Add option
+                </button>
+                {pollOptions.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setPollOptions((current) => current.slice(0, -1))}
+                    className="btn-ghost px-3 py-1.5 text-xs"
+                    data-testid="poll-remove-option"
+                  >
+                    Remove last option
+                  </button>
+                )}
+              </div>
               <p className="text-xs text-slate-500">
-                Add 2 to 5 alternatives. Empty optional fields are ignored.
+                Add at least 2 alternatives. Empty optional fields are ignored.
               </p>
             </div>
           </div>
@@ -832,7 +878,8 @@ function PollPanel({
   activity,
   poll,
   userId,
-  isHost,
+  canVote,
+  canResolvePoll,
   mutationLoading,
   onVote,
   onResolve,
@@ -840,7 +887,8 @@ function PollPanel({
   activity: ActivityRow;
   poll: PollRow;
   userId: string;
-  isHost: boolean;
+  canVote: boolean;
+  canResolvePoll: boolean;
   mutationLoading: string | null;
   onVote: (poll: PollRow, option: PollOptionRow) => void;
   onResolve: (activity: ActivityRow, poll: PollRow, option: PollOptionRow) => void;
@@ -874,7 +922,7 @@ function PollPanel({
             {userVote ? ` · Your vote: ${userVote.option_text}` : ""}
           </p>
         </div>
-        {isHost && poll.status === "OPEN" && topOption && (
+        {canResolvePoll && poll.status === "OPEN" && topOption && (
           <button
             type="button"
             onClick={() => onResolve(activity, poll, topOption)}
@@ -903,7 +951,7 @@ function PollPanel({
                 <button
                   type="button"
                   onClick={() => onVote(poll, option)}
-                  disabled={poll.status !== "OPEN" || mutationLoading === `vote-${option.id}`}
+                  disabled={!canVote || poll.status !== "OPEN" || mutationLoading === `vote-${option.id}`}
                   className={`min-w-0 flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                     isSelected
                       ? "border-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/30 dark:text-brand-100"
@@ -918,7 +966,7 @@ function PollPanel({
                 <span className="w-16 text-right text-xs font-medium text-slate-500">
                   {votes} ({percent}%)
                 </span>
-                {isHost && poll.status === "OPEN" && (
+                {canResolvePoll && poll.status === "OPEN" && (
                   <button
                     type="button"
                     onClick={() => onResolve(activity, poll, option)}

@@ -6,7 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/client";
-import type { Role } from "@/types";
+import type { PermissionKey, Role, RoomPermissionOverride } from "@/types";
+import {
+  permissionColumnByKey,
+  permissionKeys,
+  permissionLabels,
+  resolveRoomPermissions,
+} from "@/types";
 
 interface ParticipantRecord {
   id: string;
@@ -22,74 +28,92 @@ interface ParticipantRecord {
 interface ParticipantSidebarProps {
   roomId: string;
   participants: ParticipantRecord[];
+  permissionOverrides: RoomPermissionOverride[];
   currentUserId: string;
   currentRole: Role;
   hostName: string;
   onParticipantsChanged?: () => void;
 }
 
-const permissionsByRole: Record<Role, string[]> = {
-  HOST: [
-    "Manage room settings",
-    "Edit budget caps",
-    "Close or overrule polls",
-    "Delete room items",
-    "Promote or demote users",
-  ],
-  EDITOR: [
-    "Edit itinerary",
-    "Create voting polls",
-    "Cast and change votes",
-    "Create and complete room tasks",
-  ],
-  VIEWER: [
-    "Read timeline",
-    "Track budget",
-    "Cast and change votes",
-    "Read collaboration state",
-  ],
-};
+const groupedPermissionKeys: { title: string; keys: PermissionKey[] }[] = [
+  {
+    title: "Room control",
+    keys: ["manage_users", "manage_settings", "manage_budget", "delete_items"],
+  },
+  {
+    title: "Planning",
+    keys: ["manage_itinerary", "manage_tasks", "create_public_tasks"],
+  },
+  {
+    title: "Polls and communication",
+    keys: ["manage_polls", "resolve_polls", "vote", "chat", "manage_chat", "manage_comments"],
+  },
+];
 
 export default function ParticipantSidebar({
   roomId,
   participants,
+  permissionOverrides,
   currentUserId,
   currentRole,
   hostName,
   onParticipantsChanged,
 }: ParticipantSidebarProps) {
-  const [updatingParticipant, setUpdatingParticipant] = useState<string | null>(null);
+  const [updatingPermission, setUpdatingPermission] = useState<string | null>(null);
   const isCurrentUserHost = currentRole === "HOST";
 
-  async function updateParticipantRole(participant: ParticipantRecord, nextRole: Role) {
-    if (!isCurrentUserHost || participant.role === nextRole) return;
+  function getOverride(userId: string) {
+    return permissionOverrides.find((override) => override.user_id === userId) ?? null;
+  }
 
+  function getPermissions(participant: ParticipantRecord) {
+    return resolveRoomPermissions(
+      participant.role,
+      participant.profile?.id ? getOverride(participant.profile.id) : null,
+    );
+  }
+
+  async function updateParticipantPermission(
+    participant: ParticipantRecord,
+    key: PermissionKey,
+    nextValue: boolean,
+  ) {
+    const userId = participant.profile?.id;
+    if (!isCurrentUserHost || !userId || participant.role === "HOST") return;
+
+    const column = permissionColumnByKey[key];
+    const loadingKey = `${participant.id}-${key}`;
     const participantName = participant.profile?.name || "participant";
-    const isSelf = participant.profile?.id === currentUserId;
 
-    if (isSelf && nextRole !== "HOST") {
-      toast.error("Hosts cannot demote themselves from the room controller.");
-      return;
-    }
-
-    setUpdatingParticipant(participant.id);
+    setUpdatingPermission(loadingKey);
     const supabase = createClient();
-    const { error } = await supabase
-      .from("room_participants")
-      .update({ role: nextRole })
-      .eq("id", participant.id)
-      .eq("room_id", roomId);
+    const { error } = await supabase.from("room_permission_overrides").upsert(
+      {
+        room_id: roomId,
+        user_id: userId,
+        [column]: nextValue,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "room_id,user_id" },
+    );
 
-    setUpdatingParticipant(null);
+    setUpdatingPermission(null);
 
     if (error) {
       toast.error(error.message);
       return;
     }
 
-    toast.success(`${participantName} is now ${nextRole}.`);
+    toast.success(`${permissionLabels[key]} updated for ${participantName}.`);
     onParticipantsChanged?.();
   }
+
+  const currentParticipant = participants.find(
+    (participant) => participant.profile?.id === currentUserId,
+  );
+  const currentPermissions = currentParticipant
+    ? getPermissions(currentParticipant)
+    : resolveRoomPermissions(currentRole);
 
   return (
     <aside
@@ -137,30 +161,9 @@ export default function ParticipantSidebar({
                     </p>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {isCurrentUserHost && participant.role !== "HOST" ? (
-                    <select
-                      value={participant.role}
-                      onChange={(event) =>
-                        updateParticipantRole(participant, event.target.value as Role)
-                      }
-                      disabled={updatingParticipant === participant.id}
-                      className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                      aria-label={`Change role for ${displayName}`}
-                      data-testid={`participant-role-select-${participant.id}`}
-                    >
-                      <option value="EDITOR">Editor</option>
-                      <option value="VIEWER">Viewer</option>
-                    </select>
-                  ) : (
-                    <Badge variant="role" value={participant.role}>
-                      {participant.role}
-                    </Badge>
-                  )}
-                  {updatingParticipant === participant.id && (
-                    <Spinner className="h-3.5 w-3.5 text-brand-500" />
-                  )}
-                </div>
+                <Badge variant="role" value={participant.role}>
+                  {participant.role}
+                </Badge>
               </div>
             );
           })}
@@ -177,25 +180,80 @@ export default function ParticipantSidebar({
               Host User Controller
             </h2>
             <p className="mt-1 text-xs text-brand-800 dark:text-brand-200">
-              Assign each collaborator the room capability level they need.
+              Toggle exact room abilities for each collaborator.
             </p>
           </div>
-          <div className="grid gap-2 text-xs">
-            {(["HOST", "EDITOR", "VIEWER"] as Role[]).map((permissionRole) => (
-              <div key={permissionRole} className="rounded-md bg-white p-2 dark:bg-slate-900">
-                <div className="mb-1 flex items-center justify-between">
-                  <Badge variant="role" value={permissionRole}>
-                    {permissionRole}
-                  </Badge>
-                  <span className="text-slate-500">
-                    {participants.filter((item) => item.role === permissionRole).length}
-                  </span>
-                </div>
-                <p className="text-slate-600 dark:text-slate-300">
-                  {permissionsByRole[permissionRole].join(", ")}
-                </p>
-              </div>
-            ))}
+          <div className="space-y-3 text-xs">
+            {participants.map((participant) => {
+              const userId = participant.profile?.id;
+              const displayName = participant.profile?.name || "Unknown participant";
+              const permissions = getPermissions(participant);
+              const isLockedHost = participant.role === "HOST";
+
+              return (
+                <article
+                  key={participant.id}
+                  className="rounded-md bg-white p-3 dark:bg-slate-900"
+                  data-testid={`permission-toggle-panel-${participant.id}`}
+                >
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900 dark:text-white">
+                        {displayName}
+                      </p>
+                      <p className="text-slate-500">
+                        {isLockedHost
+                          ? "Host permissions are always enabled"
+                          : "Choose what this user can do"}
+                      </p>
+                    </div>
+                    <Badge variant="role" value={participant.role}>
+                      {participant.role}
+                    </Badge>
+                  </div>
+                  <div className="space-y-3">
+                    {groupedPermissionKeys.map((group) => (
+                      <div key={group.title}>
+                        <p className="mb-1 text-[11px] font-semibold uppercase text-slate-500">
+                          {group.title}
+                        </p>
+                        <div className="grid gap-1.5">
+                          {group.keys.map((key) => {
+                            const loadingKey = `${participant.id}-${key}`;
+                            const disabled = isLockedHost || !userId || updatingPermission === loadingKey;
+                            return (
+                              <label
+                                key={key}
+                                className="flex items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1.5 dark:border-slate-800"
+                              >
+                                <span className="text-slate-700 dark:text-slate-200">
+                                  {permissionLabels[key]}
+                                </span>
+                                <span className="flex items-center gap-1.5">
+                                  {updatingPermission === loadingKey && (
+                                    <Spinner className="h-3 w-3 text-brand-500" />
+                                  )}
+                                  <input
+                                    type="checkbox"
+                                    checked={permissions[key]}
+                                    disabled={disabled}
+                                    onChange={(event) =>
+                                      updateParticipantPermission(participant, key, event.target.checked)
+                                    }
+                                    className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                                    data-testid={`permission-toggle-${participant.id}-${key}`}
+                                  />
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
@@ -216,10 +274,14 @@ export default function ParticipantSidebar({
           {currentRole}
         </Badge>
         <ul className="mt-3 space-y-2 text-xs text-slate-600 dark:text-slate-300">
-          {permissionsByRole[currentRole].map((permission) => (
+          {permissionKeys.map((permission) => (
             <li key={permission} className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-brand-500" />
-              <span>{permission}</span>
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  currentPermissions[permission] ? "bg-brand-500" : "bg-slate-300"
+                }`}
+              />
+              <span>{permissionLabels[permission]}</span>
             </li>
           ))}
         </ul>

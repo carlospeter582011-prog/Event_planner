@@ -43,3 +43,4 @@ Iteration 33: Changed room timeline, tasks, and budget polling to refresh silent
 Iteration 34: Verified silent background refresh and expanded TestSprite project-plan context with `npm run build` -> Build passes -> Push pending.
 Iteration 35: Added root `resume.md` handoff with project architecture, deployment, Supabase SQL, TestSprite state, recent commits, and next steps for a fresh AI chat -> Verification not required -> Push pending.
 Iteration 36: Added Command Center room overview, Host User Controller role controls, expanded authenticated TestSprite coverage, and replaced README with full GitHub project documentation -> Build passes -> Push pending.
+Iteration 37: Added granular room permission toggles, poll RLS SQL patch, unlimited poll options, private/public to-dos, generic comments, chat/comment moderation, duplicate-room join protection, budget usage fix, and expanded TestSprite plans -> Build passes -> Push pending.

@@ -135,17 +135,24 @@ export default function DashboardClient({
         throw new Error("Room not found. Paste the invite link or room code and try again.");
       }
 
-      // Add as VIEWER (ignore conflict if already a participant)
-      const { error: insertError } = await supabase
+      const { data: existingParticipant, error: participantLookupError } = await supabase
         .from("room_participants")
-        .upsert(
-          { room_id: room.id, user_id: userId, role: "VIEWER" },
-          { onConflict: "room_id,user_id" },
-        );
+        .select("id")
+        .eq("room_id", room.id)
+        .eq("user_id", userId)
+        .maybeSingle();
 
-      if (insertError) throw insertError;
+      if (participantLookupError) throw participantLookupError;
 
-      toast.success("Joined room!");
+      if (!existingParticipant) {
+        const { error: insertError } = await supabase
+          .from("room_participants")
+          .insert({ room_id: room.id, user_id: userId, role: "VIEWER" });
+
+        if (insertError) throw insertError;
+      }
+
+      toast.success(existingParticipant ? "You are already in this room." : "Joined room!");
       setJoinOpen(false);
       setJoinSlug("");
       router.push(`/rooms/${room.id}`);

@@ -67,12 +67,18 @@ export default async function RoomPage({ params }: PageProps) {
     .eq("room_id", resolvedRoomId)
     .order("joined_at", { ascending: true });
 
+  const { data: permissionOverrides } = await supabase
+    .from("room_permission_overrides")
+    .select("*")
+    .eq("room_id", resolvedRoomId);
+
   return (
     <RoomClient
       room={room as Record<string, unknown>}
       role={role}
       userId={user.id}
       participants={(participants as Record<string, unknown>[]) ?? []}
+      permissionOverrides={(permissionOverrides as Record<string, unknown>[]) ?? []}
       roomId={resolvedRoomId}
     />
   );

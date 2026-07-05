@@ -46,13 +46,22 @@ export default async function JoinPage({ searchParams }: PageProps) {
 
   if (!room) redirect("/dashboard?error=room_not_found");
 
-  // Add as VIEWER (upsert handles re-join)
-  await supabase
-    .from("room_participants")
-    .upsert(
-      { room_id: (room as { id: string }).id, user_id: user.id, role: "VIEWER" },
-      { onConflict: "room_id,user_id" },
-    );
+  const resolvedRoomId = (room as { id: string }).id;
 
-  redirect(`/rooms/${(room as { id: string }).id}`);
+  const { data: existingParticipant } = await supabase
+    .from("room_participants")
+    .select("id")
+    .eq("room_id", resolvedRoomId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!existingParticipant) {
+    await supabase.from("room_participants").insert({
+      room_id: resolvedRoomId,
+      user_id: user.id,
+      role: "VIEWER",
+    });
+  }
+
+  redirect(`/rooms/${resolvedRoomId}`);
 }

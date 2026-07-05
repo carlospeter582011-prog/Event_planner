@@ -1,0 +1,79 @@
+{
+  "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
+  "type": "frontend",
+  "name": "Synchrona command center and host controls",
+  "description": "Focused regression coverage for the newest Synchrona room features: the Command Center overview, live verification board, permission matrix, Host User Controller granular toggles, private/public to-dos, generic comments, expanded poll options, chat moderation, and duplicate-room join protection. Run the Supabase feature_permissions_todos_comments_patch.sql patch before this test.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to https://event-planner-carlos.vercel.app/auth/signin.",
+      "expected": "The Synchrona sign-in form loads without a 500 error or unhandled application error."
+    },
+    {
+      "type": "action",
+      "description": "Sign in with the configured authenticated TestSprite account.",
+      "expected": "Authentication succeeds and the dashboard is visible."
+    },
+    {
+      "type": "action",
+      "description": "Create a room titled 'TestSprite Command Center Event' with a budget cap of 1500, or open the newest available room if room creation already completed.",
+      "expected": "A room workspace opens with the current user marked as HOST."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the Command tab is visible and selected by default.",
+      "expected": "The room renders the Command Center without requiring a manual page refresh."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the readiness score, open polls metric, task progress metric, budget health metric, live verification board, and permission matrix are visible.",
+      "expected": "Each Command Center region renders with stable, human-readable text."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the participant sidebar shows the Host User Controller with toggles for edit room settings, edit budget, edit itinerary, create polls, resolve polls, manage to-do lists, create public to-dos, manage users, use chat, moderate chat, and moderate comments.",
+      "expected": "The host can inspect and toggle granular room permissions rather than only choosing Editor or Viewer."
+    },
+    {
+      "type": "action",
+      "description": "Open the Timeline tab, add one day plus one proposed activity if the room is empty, create a poll, use Add option to add more than five options, and submit the poll.",
+      "expected": "The itinerary update succeeds, the poll accepts more than five options, and poll creation does not hit a row-level-security error."
+    },
+    {
+      "type": "action",
+      "description": "Write a timeline comment and an activity comment, then delete the comment as the same user.",
+      "expected": "Comments can be created and the author's own comment can be deleted."
+    },
+    {
+      "type": "action",
+      "description": "Open the Tasks tab, create a private to-do, create a public to-do if the host permission is enabled, toggle a checkbox, and add a to-do comment.",
+      "expected": "Private and public room to-dos render with checkboxes, scope labels, and comment controls."
+    },
+    {
+      "type": "action",
+      "description": "Open the Budget tab and verify the budget usage bar shows the correct percentage and a budget comments section.",
+      "expected": "The budget bar fill matches the displayed usage percentage and budget comments are available."
+    },
+    {
+      "type": "action",
+      "description": "Open the Chat tab, send a message, delete the user's own message, and verify clear-chat is visible only when chat moderation is enabled.",
+      "expected": "Chat supports own-message deletion and permission-based moderation."
+    },
+    {
+      "type": "action",
+      "description": "Try joining the same room again using the invite link or room code.",
+      "expected": "The app routes back to the room without overwriting the user's existing role or creating a duplicate participant."
+    },
+    {
+      "type": "action",
+      "description": "Return to the Command tab.",
+      "expected": "The live verification board reflects itinerary activity and still shows no fatal error."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify no missing Supabase configuration warning, generic application error, 404 page, or 500 page is visible.",
+      "expected": "The focused host-controls flow completes cleanly."
+    }
+  ]
+}

@@ -7,12 +7,15 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import Modal from "@/components/ui/modal";
-import type { Role, ActivityStatus } from "@/types";
+import type { Role, ActivityStatus, RoomPermissions } from "@/types";
+import CommentsPanel from "./comments-panel";
 
 interface BudgetViewProps {
   roomId: string;
+  userId: string;
   role: Role;
   roomBudgetCap: number;
+  permissions: RoomPermissions;
 }
 
 interface ActivityRow {
@@ -24,8 +27,9 @@ interface ActivityRow {
 
 export default function BudgetView({
   roomId,
-  role,
+  userId,
   roomBudgetCap,
+  permissions,
 }: BudgetViewProps) {
   const supabase = useMemo(() => createClient(), []);
   const [activities, setActivities] = useState<ActivityRow[]>([]);
@@ -33,7 +37,7 @@ export default function BudgetView({
   const [editBudgetOpen, setEditBudgetOpen] = useState(false);
   const [newBudget, setNewBudget] = useState(roomBudgetCap.toString());
 
-  const isHost = role === "HOST";
+  const canEditBudget = permissions.manage_budget;
 
   const fetchData = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -87,9 +91,12 @@ export default function BudgetView({
   const totalAllocated = confirmedTotal + proposedTotal;
   const remaining = roomBudgetCap - totalAllocated;
   const isOverBudget = totalAllocated > roomBudgetCap;
-  const usagePercent = roomBudgetCap > 0
-    ? Math.min((totalAllocated / roomBudgetCap) * 100, 100)
-    : 0;
+  const rawUsagePercent = roomBudgetCap > 0
+    ? (totalAllocated / roomBudgetCap) * 100
+    : totalAllocated > 0
+      ? 100
+      : 0;
+  const usagePercent = Math.max(0, Math.min(rawUsagePercent, 100));
 
   if (loading) {
     return (
@@ -159,7 +166,7 @@ export default function BudgetView({
           <span className="font-medium text-slate-700 dark:text-slate-300">
             Budget usage
           </span>
-          <span className="text-slate-500">{usagePercent.toFixed(1)}%</span>
+          <span className="text-slate-500">{rawUsagePercent.toFixed(1)}%</span>
         </div>
         <div className="h-4 w-full rounded-full bg-slate-200 dark:bg-slate-800" role="progressbar" aria-valuenow={usagePercent} aria-valuemin={0} aria-valuemax={100}>
           <div
@@ -216,8 +223,18 @@ export default function BudgetView({
         </div>
       </div>
 
+      <div className="mt-6">
+        <CommentsPanel
+          roomId={roomId}
+          userId={userId}
+          permissions={permissions}
+          targetType="BUDGET"
+          title="Budget comments"
+        />
+      </div>
+
       {/* Edit budget button (Host only) */}
-      {isHost && (
+      {canEditBudget && (
         <div className="mt-6">
           <button
             type="button"

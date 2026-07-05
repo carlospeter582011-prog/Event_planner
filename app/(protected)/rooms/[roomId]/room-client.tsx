@@ -7,7 +7,8 @@ import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui/spinner";
 import { formatCurrency } from "@/lib/utils";
-import type { Role } from "@/types";
+import type { Role, RoomPermissionOverride } from "@/types";
+import { resolveRoomPermissions } from "@/types";
 import TimelineView from "./timeline-view";
 import TasksView from "./tasks-view";
 import BudgetView from "./budget-view";
@@ -22,6 +23,7 @@ interface RoomClientProps {
   role: Role;
   userId: string;
   participants: Record<string, unknown>[];
+  permissionOverrides: Record<string, unknown>[];
   roomId: string;
 }
 
@@ -41,6 +43,7 @@ export default function RoomClient({
   role,
   userId,
   participants,
+  permissionOverrides,
   roomId,
 }: RoomClientProps) {
   const router = useRouter();
@@ -55,8 +58,14 @@ export default function RoomClient({
   const roomBudgetCap = room.total_budget_cap as number;
   const roomSlug = room.slug as string;
   const typedParticipants = participants as unknown as ParticipantRecord[];
+  const typedPermissionOverrides =
+    permissionOverrides as unknown as RoomPermissionOverride[];
+  const currentPermissionOverride = typedPermissionOverrides.find(
+    (override) => override.user_id === userId,
+  );
+  const permissions = resolveRoomPermissions(role, currentPermissionOverride);
   const isHost = role === "HOST";
-  const isEditor = role === "HOST" || role === "EDITOR";
+  const isEditor = permissions.manage_itinerary || permissions.manage_tasks;
 
   async function handleLeaveRoom() {
     setLoading(true);
@@ -219,6 +228,7 @@ export default function RoomClient({
           <ParticipantSidebar
             roomId={roomId}
             participants={typedParticipants}
+            permissionOverrides={typedPermissionOverrides}
             currentUserId={userId}
             currentRole={role}
             hostName={host?.name || "Unknown"}
@@ -242,7 +252,12 @@ export default function RoomClient({
             data-testid="room-tab-content"
           >
             {activeTab === "timeline" && (
-              <TimelineView roomId={roomId} role={role} userId={userId} />
+              <TimelineView
+                roomId={roomId}
+                role={role}
+                userId={userId}
+                permissions={permissions}
+              />
             )}
             {activeTab === "command" && (
               <CommandCenterView
@@ -253,17 +268,29 @@ export default function RoomClient({
               />
             )}
             {activeTab === "tasks" && (
-              <TasksView roomId={roomId} role={role} userId={userId} />
+              <TasksView
+                roomId={roomId}
+                role={role}
+                userId={userId}
+                permissions={permissions}
+              />
             )}
             {activeTab === "budget" && (
               <BudgetView
                 roomId={roomId}
+                userId={userId}
                 role={role}
                 roomBudgetCap={roomBudgetCap}
+                permissions={permissions}
               />
             )}
             {activeTab === "chat" && (
-              <ChatView roomId={roomId} userId={userId} role={role} />
+              <ChatView
+                roomId={roomId}
+                userId={userId}
+                role={role}
+                permissions={permissions}
+              />
             )}
           </div>
 
@@ -287,6 +314,7 @@ export default function RoomClient({
             <ParticipantSidebar
               roomId={roomId}
               participants={typedParticipants}
+              permissionOverrides={typedPermissionOverrides}
               currentUserId={userId}
               currentRole={role}
               hostName={host?.name || "Unknown"}

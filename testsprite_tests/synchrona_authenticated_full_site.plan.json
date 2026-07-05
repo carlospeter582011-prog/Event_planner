@@ -2,7 +2,7 @@
   "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
   "type": "frontend",
   "name": "Synchrona authenticated full website flow",
-  "description": "Synchrona is a real-time collaborative event planner for multi-day event rooms. Authenticated users create secure UUID/slug rooms, invite others by link or room code, manage role-based access, inspect a live Command Center, build day-by-day timelines with activity blocks, attach democratic voting polls to proposed activities, maintain room to-do lists, monitor budget caps and allocated costs, and use a room chat for collaboration. Test the full authenticated workflow as a Host with the supplied account: login, create a room, verify invite/share controls, inspect the Command Center, verify the host user controller and permission matrix, create itinerary days and activities, create and vote in a poll, create and complete tasks, inspect the budget dashboard, and verify chat is available without fatal errors.",
+  "description": "Synchrona is a real-time collaborative event planner for multi-day event rooms. Authenticated users create secure UUID/slug rooms, invite others by link or room code, manage granular room permissions, inspect a live Command Center, build day-by-day timelines with activity blocks, attach democratic voting polls with more than five options, maintain private and public room to-do lists, write comments on timelines, activities, budgets, and to-dos, monitor budget caps and allocated costs, and use moderated room chat. Run the Supabase feature_permissions_todos_comments_patch.sql patch before this test.",
   "priority": "p0",
   "planSteps": [
     {
@@ -37,8 +37,8 @@
     },
     {
       "type": "assertion",
-      "description": "Verify the participant sidebar shows the Host User Controller and role capability summaries for Host, Editor, and Viewer.",
-      "expected": "The Host can see the user permission controller for room-level access management."
+      "description": "Verify the participant sidebar shows the Host User Controller with granular permission toggles including manage users, create polls, vote, use chat, moderate chat, manage comments, and create public to-dos.",
+      "expected": "The Host can grant or revoke exact room capabilities, not only broad Editor or Viewer roles."
     },
     {
       "type": "action",
@@ -57,23 +57,23 @@
     },
     {
       "type": "action",
-      "description": "Create a voting poll for Welcome Dinner with options 'Main Hall Buffet' and 'Rooftop Dinner', then vote for one option.",
-      "expected": "The poll renders live vote counts or bars and records the vote."
+      "description": "Create a voting poll for Welcome Dinner with more than five options by using the Add option control, then vote for one option.",
+      "expected": "The poll renders live vote counts or bars, accepts more than five options, and records the vote without a row-level-security error."
     },
     {
       "type": "action",
-      "description": "Open the Tasks tab, create a task titled 'Confirm catering' with due date 2026-08-01 and high priority, then mark it complete.",
-      "expected": "The task appears, can be checked complete, and the task progress updates."
+      "description": "Open the Tasks tab, create a private to-do titled 'Confirm catering', create a public to-do if the permission is enabled, mark a to-do complete, and add a to-do comment.",
+      "expected": "Private and public to-dos render with scope labels, checkboxes, progress updates, and comments."
     },
     {
       "type": "action",
-      "description": "Open the Budget tab.",
-      "expected": "The budget dashboard shows Total Budget Cap, Total Allocated, Confirmed, Remaining, budget usage, and the Welcome Dinner cost breakdown."
+      "description": "Open the Budget tab and add a budget comment.",
+      "expected": "The budget dashboard shows Total Budget Cap, Total Allocated, Confirmed, Remaining, a correctly filled usage bar, the Welcome Dinner cost breakdown, and budget comments."
     },
     {
       "type": "action",
-      "description": "Open the Chat tab and send a short message saying 'TestSprite verification message'.",
-      "expected": "The chat panel accepts the message or shows a clear schema warning if the room_messages SQL patch has not been applied."
+      "description": "Open the Chat tab, send a short message saying 'TestSprite verification message', then delete the user's own message. If chat moderation is enabled, verify the clear chat action is available.",
+      "expected": "The chat panel accepts messages, supports own-message deletion, and exposes moderation controls only for users with permission."
     },
     {
       "type": "assertion",

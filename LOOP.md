@@ -26,3 +26,4 @@ Iteration 16: Verified dynamic protected-route fix with blank Supabase variables
 Iteration 17: Added vercel.json to override incorrect Vercel output directory setting from `public` to Next.js `.next` output -> Verification pending -> Push pending.
 Iteration 18: Verified vercel.json output-directory override still builds with blank Supabase variables using `npm run build` -> Build passes -> Push pending.
 Iteration 19: Confirmed GitHub-triggered Vercel production deployment `dpl_H9EEx9bQ1Gpk8XjcA8DP5MaNae82` is READY after output-directory fix -> Build passes -> Redeployed.
+Iteration 20: Ran TestSprite public smoke test `f64fda4a-144a-4b90-9aa8-a822c1f2aedf` against Vercel alias -> Passed 6/6 steps -> Redeployed.

@@ -36,6 +36,7 @@ export default function BudgetView({
   const [loading, setLoading] = useState(true);
   const [editBudgetOpen, setEditBudgetOpen] = useState(false);
   const [newBudget, setNewBudget] = useState(roomBudgetCap.toString());
+  const [currentBudgetCap, setCurrentBudgetCap] = useState(roomBudgetCap);
 
   const canEditBudget = permissions.manage_budget;
 
@@ -43,10 +44,16 @@ export default function BudgetView({
     if (showLoader) setLoading(true);
     const { data } = await supabase
       .from("activity_blocks")
-      .select("id, title, status, cost");
+      .select("id, title, status, cost, day:days!inner(room_id)")
+      .eq("day.room_id", roomId);
     setActivities((data as ActivityRow[] | null) ?? []);
     if (showLoader) setLoading(false);
-  }, [supabase]);
+  }, [roomId, supabase]);
+
+  useEffect(() => {
+    setCurrentBudgetCap(roomBudgetCap);
+    setNewBudget(roomBudgetCap.toString());
+  }, [roomBudgetCap]);
 
   useEffect(() => {
     fetchData(true);
@@ -63,9 +70,18 @@ export default function BudgetView({
         { event: "*", schema: "public", table: "activity_blocks" },
         () => fetchData(),
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rooms", filter: `id=eq.${roomId}` },
+        (payload) => {
+          const nextBudgetCap = Number(payload.new.total_budget_cap ?? currentBudgetCap);
+          setCurrentBudgetCap(nextBudgetCap);
+          setNewBudget(nextBudgetCap.toString());
+        },
+      )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, fetchData]);
+  }, [currentBudgetCap, roomId, supabase, fetchData]);
 
   // Save budget cap
   async function handleSaveBudget(e: React.FormEvent) {
@@ -75,6 +91,7 @@ export default function BudgetView({
       .update({ total_budget_cap: parseFloat(newBudget) || 0 })
       .eq("id", roomId);
     if (error) { toast.error(error.message); return; }
+    setCurrentBudgetCap(parseFloat(newBudget) || 0);
     toast.success("Budget updated!");
     setEditBudgetOpen(false);
   }
@@ -89,10 +106,10 @@ export default function BudgetView({
     .reduce((sum, a) => sum + (a.cost || 0), 0);
 
   const totalAllocated = confirmedTotal + proposedTotal;
-  const remaining = roomBudgetCap - totalAllocated;
-  const isOverBudget = totalAllocated > roomBudgetCap;
-  const rawUsagePercent = roomBudgetCap > 0
-    ? (totalAllocated / roomBudgetCap) * 100
+  const remaining = currentBudgetCap - totalAllocated;
+  const isOverBudget = totalAllocated > currentBudgetCap;
+  const rawUsagePercent = currentBudgetCap > 0
+    ? (totalAllocated / currentBudgetCap) * 100
     : totalAllocated > 0
       ? 100
       : 0;
@@ -125,7 +142,7 @@ export default function BudgetView({
               Budget exceeded!
             </h3>
             <p className="text-sm text-red-700 dark:text-red-400">
-              Total allocated costs ({formatCurrency(totalAllocated)}) exceed the budget cap ({formatCurrency(roomBudgetCap)}).
+              Total allocated costs ({formatCurrency(totalAllocated)}) exceed the budget cap ({formatCurrency(currentBudgetCap)}).
               Consider increasing the budget or reducing activity costs.
             </p>
           </div>
@@ -137,7 +154,7 @@ export default function BudgetView({
         <BudgetCard
           testId="budget-cap"
           label="Total Budget Cap"
-          value={formatCurrency(roomBudgetCap)}
+          value={formatCurrency(currentBudgetCap)}
           color="brand"
         />
         <BudgetCard
@@ -182,9 +199,15 @@ export default function BudgetView({
           />
         </div>
         <div className="mt-3 flex min-w-0 justify-between gap-3 text-xs text-slate-500">
-          <span>{formatCurrency(0)}</span>
+          <span
+            className="min-w-0 max-w-[50%] overflow-hidden text-ellipsis whitespace-nowrap"
+            title={`Allocated ${formatCurrency(totalAllocated)}`}
+            data-testid="budget-usage-allocated-label"
+          >
+            {formatCurrency(totalAllocated)}
+          </span>
           <span className="min-w-0 break-all text-right [overflow-wrap:anywhere]">
-            {formatCurrency(roomBudgetCap)}
+            {formatCurrency(currentBudgetCap)}
           </span>
         </div>
       </div>
@@ -241,7 +264,7 @@ export default function BudgetView({
           <button
             type="button"
             onClick={() => {
-              setNewBudget(roomBudgetCap.toString());
+              setNewBudget(currentBudgetCap.toString());
               setEditBudgetOpen(true);
             }}
             className="btn-secondary text-sm"

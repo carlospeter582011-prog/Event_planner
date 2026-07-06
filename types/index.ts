@@ -21,6 +21,7 @@ export type PermissionKey =
   | "manage_budget"
   | "manage_itinerary"
   | "manage_polls"
+  | "delete_polls"
   | "resolve_polls"
   | "manage_tasks"
   | "create_public_tasks"
@@ -73,6 +74,7 @@ export interface RoomPermissionOverride {
   can_manage_budget: boolean | null;
   can_manage_itinerary: boolean | null;
   can_manage_polls: boolean | null;
+  can_delete_polls: boolean | null;
   can_resolve_polls: boolean | null;
   can_manage_tasks: boolean | null;
   can_create_public_tasks: boolean | null;
@@ -223,6 +225,7 @@ export const permissionKeys: PermissionKey[] = [
   "manage_budget",
   "manage_itinerary",
   "manage_polls",
+  "delete_polls",
   "resolve_polls",
   "manage_tasks",
   "create_public_tasks",
@@ -239,6 +242,7 @@ export const permissionColumnByKey: Record<PermissionKey, keyof RoomPermissionOv
   manage_budget: "can_manage_budget",
   manage_itinerary: "can_manage_itinerary",
   manage_polls: "can_manage_polls",
+  delete_polls: "can_delete_polls",
   resolve_polls: "can_resolve_polls",
   manage_tasks: "can_manage_tasks",
   create_public_tasks: "can_create_public_tasks",
@@ -255,6 +259,7 @@ export const permissionLabels: Record<PermissionKey, string> = {
   manage_budget: "Edit budget",
   manage_itinerary: "Add/edit timeline days and activities",
   manage_polls: "Create polls",
+  delete_polls: "Delete polls",
   resolve_polls: "Resolve polls",
   manage_tasks: "Manage to-do lists",
   create_public_tasks: "Create public to-dos",
@@ -272,6 +277,7 @@ export const roleDefaultPermissions: Record<Role, RoomPermissions> = {
     manage_budget: true,
     manage_itinerary: true,
     manage_polls: true,
+    delete_polls: true,
     resolve_polls: true,
     manage_tasks: true,
     create_public_tasks: true,
@@ -287,6 +293,7 @@ export const roleDefaultPermissions: Record<Role, RoomPermissions> = {
     manage_budget: false,
     manage_itinerary: true,
     manage_polls: true,
+    delete_polls: false,
     resolve_polls: false,
     manage_tasks: true,
     create_public_tasks: true,
@@ -302,6 +309,7 @@ export const roleDefaultPermissions: Record<Role, RoomPermissions> = {
     manage_budget: false,
     manage_itinerary: false,
     manage_polls: false,
+    delete_polls: false,
     resolve_polls: false,
     manage_tasks: false,
     create_public_tasks: false,

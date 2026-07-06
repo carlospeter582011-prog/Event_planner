@@ -44,6 +44,7 @@ export default function CommentsPanel({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [schemaMissing, setSchemaMissing] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const fetchComments = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -97,6 +98,7 @@ export default function CommentsPanel({
     if (!body.trim()) return;
 
     setSaving(true);
+    setCommentError(null);
     const { error } = await supabase.from("room_comments").insert({
       room_id: roomId,
       user_id: userId,
@@ -107,11 +109,13 @@ export default function CommentsPanel({
     setSaving(false);
 
     if (error) {
+      setCommentError(error.message);
       toast.error(error.message);
       return;
     }
 
     setBody("");
+    setCommentError(null);
     fetchComments();
   }
 
@@ -126,10 +130,12 @@ export default function CommentsPanel({
     setDeletingId(null);
 
     if (error) {
+      setCommentError(error.message);
       toast.error(error.message);
       return;
     }
 
+    setCommentError(null);
     toast.success("Comment deleted.");
     fetchComments();
   }
@@ -150,10 +156,12 @@ export default function CommentsPanel({
     setClearing(false);
 
     if (error) {
+      setCommentError(error.message);
       toast.error(error.message);
       return;
     }
 
+    setCommentError(null);
     toast.success("Comments cleared.");
     fetchComments();
   }
@@ -203,6 +211,16 @@ export default function CommentsPanel({
           )}
         </div>
       </div>
+
+      {commentError && (
+        <div
+          className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+          role="alert"
+          data-testid={`comment-error-${targetType.toLowerCase()}-${targetId ?? "room"}`}
+        >
+          {commentError}
+        </div>
+      )}
 
       <div className="space-y-2">
         {comments.length === 0 ? (

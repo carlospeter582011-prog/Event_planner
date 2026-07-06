@@ -46,7 +46,7 @@ const groupedPermissionKeys: { title: string; keys: PermissionKey[] }[] = [
   },
   {
     title: "Polls and communication",
-    keys: ["manage_polls", "resolve_polls", "vote", "chat", "manage_chat", "manage_comments"],
+    keys: ["manage_polls", "delete_polls", "resolve_polls", "vote", "chat", "manage_chat", "manage_comments"],
   },
 ];
 

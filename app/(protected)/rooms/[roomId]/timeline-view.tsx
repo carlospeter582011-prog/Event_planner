@@ -42,6 +42,10 @@ interface ActivityRow {
 interface VoteRow {
   id: string;
   user_id: string;
+  profile?: {
+    name: string | null;
+    email: string | null;
+  } | null;
 }
 
 interface PollOptionRow {
@@ -94,6 +98,7 @@ export default function TimelineView({
   const canEdit = permissions.manage_itinerary;
   const canDelete = permissions.delete_items;
   const canCreatePoll = permissions.manage_polls;
+  const canDeletePoll = permissions.delete_polls;
   const canResolvePoll = permissions.resolve_polls;
   const canVote = permissions.vote;
 
@@ -120,7 +125,7 @@ export default function TimelineView({
       ? await supabase
           .from("polls")
           .select(
-            "id, activity_block_id, question, status, options:poll_options(id, poll_id, option_text, sequence, votes(id, user_id))",
+            "id, activity_block_id, question, status, options:poll_options(id, poll_id, option_text, sequence, votes(id, user_id, profile:profiles(name, email)))",
           )
           .in("activity_block_id", activityIds)
       : { data: [] };
@@ -379,6 +384,25 @@ export default function TimelineView({
     toast.success("Poll resolved and activity confirmed.");
   }
 
+  async function handleDeletePoll(poll: PollRow) {
+    if (!canDeletePoll) return;
+
+    setMutationLoading(`delete-poll-${poll.id}`);
+    const { error } = await supabase
+      .from("polls")
+      .delete()
+      .eq("id", poll.id);
+    setMutationLoading(null);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Poll deleted.");
+    fetchData();
+  }
+
   // Drag & Drop handlers
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<{ dayId: string; index: number } | null>(null);
@@ -587,9 +611,11 @@ export default function TimelineView({
                               poll={poll}
                               userId={userId}
                               canVote={canVote}
+                              canDeletePoll={canDeletePoll}
                               canResolvePoll={canResolvePoll}
                               mutationLoading={mutationLoading}
                               onVote={handleVote}
+                              onDelete={handleDeletePoll}
                               onResolve={handleResolvePoll}
                             />
                           ) : (
@@ -930,18 +956,22 @@ function PollPanel({
   poll,
   userId,
   canVote,
+  canDeletePoll,
   canResolvePoll,
   mutationLoading,
   onVote,
+  onDelete,
   onResolve,
 }: {
   activity: ActivityRow;
   poll: PollRow;
   userId: string;
   canVote: boolean;
+  canDeletePoll: boolean;
   canResolvePoll: boolean;
   mutationLoading: string | null;
   onVote: (poll: PollRow, option: PollOptionRow) => void;
+  onDelete: (poll: PollRow) => void;
   onResolve: (activity: ActivityRow, poll: PollRow, option: PollOptionRow) => void;
 }) {
   const totalVotes = poll.options.reduce((sum, option) => sum + option.votes.length, 0);
@@ -973,21 +1003,38 @@ function PollPanel({
             {userVote ? ` · Your vote: ${userVote.option_text}` : ""}
           </p>
         </div>
-        {canResolvePoll && poll.status === "OPEN" && topOption && (
-          <button
-            type="button"
-            onClick={() => onResolve(activity, poll, topOption)}
-            disabled={mutationLoading === `resolve-${poll.id}`}
-            className="btn-secondary px-3 py-1.5 text-xs"
-            data-testid={`poll-auto-commit-${poll.id}`}
-          >
-            {mutationLoading === `resolve-${poll.id}` ? (
-              <Spinner className="h-3.5 w-3.5" />
-            ) : (
-              "Commit top choice"
-            )}
-          </button>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {canDeletePoll && (
+            <button
+              type="button"
+              onClick={() => onDelete(poll)}
+              disabled={mutationLoading === `delete-poll-${poll.id}`}
+              className="btn-ghost px-3 py-1.5 text-xs text-red-600 hover:text-red-700"
+              data-testid={`poll-delete-${poll.id}`}
+            >
+              {mutationLoading === `delete-poll-${poll.id}` ? (
+                <Spinner className="h-3.5 w-3.5" />
+              ) : (
+                "Delete poll"
+              )}
+            </button>
+          )}
+          {canResolvePoll && poll.status === "OPEN" && topOption && (
+            <button
+              type="button"
+              onClick={() => onResolve(activity, poll, topOption)}
+              disabled={mutationLoading === `resolve-${poll.id}`}
+              className="btn-secondary px-3 py-1.5 text-xs"
+              data-testid={`poll-auto-commit-${poll.id}`}
+            >
+              {mutationLoading === `resolve-${poll.id}` ? (
+                <Spinner className="h-3.5 w-3.5" />
+              ) : (
+                "Commit top choice"
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
@@ -1040,6 +1087,19 @@ function PollPanel({
                   data-testid={`poll-bar-${option.id}`}
                 />
               </div>
+              <p
+                className="mt-1 truncate text-xs text-slate-500 dark:text-slate-400"
+                title={option.votes
+                  .map((vote) => vote.profile?.name || vote.profile?.email || "Participant")
+                  .join(", ")}
+                data-testid={`poll-voters-${option.id}`}
+              >
+                {option.votes.length > 0
+                  ? `Voted: ${option.votes
+                    .map((vote) => vote.profile?.name || vote.profile?.email || "Participant")
+                    .join(", ")}`
+                  : "No votes yet"}
+              </p>
             </div>
           );
         })}

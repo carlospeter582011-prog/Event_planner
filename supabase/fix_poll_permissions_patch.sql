@@ -5,6 +5,9 @@
 --   new row violates row-level security policy for table "polls"
 -- =====================================================================
 
+alter table public.room_permission_overrides
+add column if not exists can_delete_polls boolean;
+
 create or replace function public.is_room_host(target_room_id uuid, target_user_id uuid)
 returns boolean
 language sql
@@ -60,6 +63,7 @@ begin
       when 'manage_budget' then can_manage_budget
       when 'manage_itinerary' then can_manage_itinerary
       when 'manage_polls' then can_manage_polls
+      when 'delete_polls' then can_delete_polls
       when 'resolve_polls' then can_resolve_polls
       when 'manage_tasks' then can_manage_tasks
       when 'create_public_tasks' then can_create_public_tasks
@@ -101,10 +105,30 @@ $$;
 
 drop policy if exists "Editors can manage polls" on public.polls;
 drop policy if exists "Users with poll permission can manage polls" on public.polls;
+drop policy if exists "Users with poll permission can create polls" on public.polls;
+drop policy if exists "Users with poll permission can update polls" on public.polls;
+drop policy if exists "Users with poll delete permission can delete polls" on public.polls;
 
-create policy "Users with poll permission can manage polls"
+create policy "Users with poll permission can create polls"
 on public.polls
-for all
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.activity_blocks ab
+    join public.days d on d.id = ab.day_id
+    where ab.id = polls.activity_block_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
+  )
+);
+
+create policy "Users with poll permission can update polls"
+on public.polls
+for update
 to authenticated
 using (
   exists (
@@ -115,6 +139,7 @@ using (
       and (
         public.is_room_host(d.room_id, auth.uid())
         or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+        or public.can_room(d.room_id, auth.uid(), 'resolve_polls')
       )
   )
 )
@@ -127,6 +152,24 @@ with check (
       and (
         public.is_room_host(d.room_id, auth.uid())
         or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+        or public.can_room(d.room_id, auth.uid(), 'resolve_polls')
+      )
+  )
+);
+
+create policy "Users with poll delete permission can delete polls"
+on public.polls
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.activity_blocks ab
+    join public.days d on d.id = ab.day_id
+    where ab.id = polls.activity_block_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'delete_polls')
       )
   )
 );

@@ -19,6 +19,7 @@ create table if not exists public.room_permission_overrides (
   can_manage_budget boolean,
   can_manage_itinerary boolean,
   can_manage_polls boolean,
+  can_delete_polls boolean,
   can_resolve_polls boolean,
   can_manage_tasks boolean,
   can_create_public_tasks boolean,
@@ -40,6 +41,7 @@ add column if not exists can_manage_settings boolean,
 add column if not exists can_manage_budget boolean,
 add column if not exists can_manage_itinerary boolean,
 add column if not exists can_manage_polls boolean,
+add column if not exists can_delete_polls boolean,
 add column if not exists can_resolve_polls boolean,
 add column if not exists can_manage_tasks boolean,
 add column if not exists can_create_public_tasks boolean,
@@ -125,6 +127,7 @@ begin
       when 'manage_budget' then can_manage_budget
       when 'manage_itinerary' then can_manage_itinerary
       when 'manage_polls' then can_manage_polls
+      when 'delete_polls' then can_delete_polls
       when 'resolve_polls' then can_resolve_polls
       when 'manage_tasks' then can_manage_tasks
       when 'create_public_tasks' then can_create_public_tasks
@@ -419,10 +422,30 @@ using (
 
 drop policy if exists "Editors can manage polls" on public.polls;
 drop policy if exists "Users with poll permission can manage polls" on public.polls;
+drop policy if exists "Users with poll permission can create polls" on public.polls;
+drop policy if exists "Users with poll permission can update polls" on public.polls;
+drop policy if exists "Users with poll delete permission can delete polls" on public.polls;
 
-create policy "Users with poll permission can manage polls"
+create policy "Users with poll permission can create polls"
 on public.polls
-for all
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.activity_blocks ab
+    join public.days d on d.id = ab.day_id
+    where ab.id = polls.activity_block_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
+  )
+);
+
+create policy "Users with poll permission can update polls"
+on public.polls
+for update
 to authenticated
 using (
   exists (
@@ -433,6 +456,7 @@ using (
       and (
         public.is_room_host(d.room_id, auth.uid())
         or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+        or public.can_room(d.room_id, auth.uid(), 'resolve_polls')
       )
   )
 )
@@ -445,6 +469,24 @@ with check (
       and (
         public.is_room_host(d.room_id, auth.uid())
         or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+        or public.can_room(d.room_id, auth.uid(), 'resolve_polls')
+      )
+  )
+);
+
+create policy "Users with poll delete permission can delete polls"
+on public.polls
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.activity_blocks ab
+    join public.days d on d.id = ab.day_id
+    where ab.id = polls.activity_block_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'delete_polls')
       )
   )
 );
@@ -576,33 +618,29 @@ alter table public.room_comments enable row level security;
 
 drop policy if exists "Participants can view room comments" on public.room_comments;
 drop policy if exists "Participants can create room comments" on public.room_comments;
+drop policy if exists "Room members can view room comments" on public.room_comments;
+drop policy if exists "Room members can create room comments" on public.room_comments;
 drop policy if exists "Users can delete own comments" on public.room_comments;
 drop policy if exists "Comment moderators can delete comments" on public.room_comments;
 
-create policy "Participants can view room comments"
+create policy "Room members can view room comments"
 on public.room_comments
 for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.room_participants rp
-    where rp.room_id = room_comments.room_id
-      and rp.user_id = auth.uid()
-  )
+  public.is_room_host(room_id, auth.uid())
+  or public.get_room_role(room_id, auth.uid()) is not null
 );
 
-create policy "Participants can create room comments"
+create policy "Room members can create room comments"
 on public.room_comments
 for insert
 to authenticated
 with check (
   user_id = auth.uid()
-  and exists (
-    select 1
-    from public.room_participants rp
-    where rp.room_id = room_comments.room_id
-      and rp.user_id = auth.uid()
+  and (
+    public.is_room_host(room_id, auth.uid())
+    or public.get_room_role(room_id, auth.uid()) is not null
   )
 );
 
@@ -616,7 +654,10 @@ create policy "Comment moderators can delete comments"
 on public.room_comments
 for delete
 to authenticated
-using (public.can_room(room_id, auth.uid(), 'manage_comments'));
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_comments')
+);
 
 -- ---------------------------------------------------------------------
 -- Realtime

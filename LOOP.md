@@ -50,3 +50,4 @@ Iteration 40: Fixed room permission override RLS bootstrap by explicitly allowin
 Iteration 41: Updated resume.md handoff with granular permissions, comments, private/public to-dos, SQL patch history, TestSprite coverage, recent commits, and next steps -> Documentation only -> Push pending.
 2026-07-06 - Added TestSprite two-account RBAC transfer plan covering host login, second-account room join, participant visibility, and permission boundary reporting.
 2026-07-06 - Recorded TestSprite production run results, including public pass, authenticated poll-creation failure, and two-account RBAC transfer pass.
+2026-07-06 - Diagnosed poll creation as a live Supabase RLS failure, added visible poll form error handling, and prepared a poll permission SQL hotfix.

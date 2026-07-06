@@ -88,6 +88,7 @@ export default function TimelineView({
   }>({ open: false, activityId: "", activityTitle: "" });
   const [pollQuestion, setPollQuestion] = useState("Which option should we choose?");
   const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [pollError, setPollError] = useState<string | null>(null);
 
   const canEdit = permissions.manage_itinerary;
   const canDelete = permissions.delete_items;
@@ -255,49 +256,62 @@ export default function TimelineView({
 
   async function handleCreatePoll(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setPollError(null);
     const options = pollOptions.map((option) => option.trim()).filter(Boolean);
 
+    if (!pollModal.activityId) {
+      setPollError("Choose an activity before creating a poll.");
+      toast.error("Choose an activity before creating a poll.");
+      return;
+    }
+
     if (options.length < 2) {
+      setPollError("Add at least 2 poll options.");
       toast.error("Add at least 2 poll options.");
       return;
     }
 
     setMutationLoading("create-poll");
-    const { data: poll, error: pollError } = await supabase
-      .from("polls")
-      .insert({
-        activity_block_id: pollModal.activityId,
-        question: pollQuestion.trim() || "Which option should we choose?",
-        status: "OPEN",
-      })
-      .select("id")
-      .single();
+    try {
+      const { data: poll, error: createPollError } = await supabase
+        .from("polls")
+        .insert({
+          activity_block_id: pollModal.activityId,
+          question: pollQuestion.trim() || "Which option should we choose?",
+          status: "OPEN",
+        })
+        .select("id")
+        .single();
 
-    if (pollError || !poll) {
-      toast.error(pollError?.message ?? "Failed to create poll.");
+      if (createPollError || !poll) {
+        throw new Error(createPollError?.message ?? "Failed to create poll.");
+      }
+
+      const { error: optionError } = await supabase.from("poll_options").insert(
+        options.map((option, index) => ({
+          poll_id: (poll as { id: string }).id,
+          option_text: option,
+          sequence: index + 1,
+        })),
+      );
+
+      if (optionError) {
+        await supabase.from("polls").delete().eq("id", (poll as { id: string }).id);
+        throw new Error(optionError.message);
+      }
+
+      toast.success("Poll created.");
+      setPollModal({ open: false, activityId: "", activityTitle: "" });
+      setPollQuestion("Which option should we choose?");
+      setPollOptions(["", ""]);
+      await fetchData();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create poll.";
+      setPollError(message);
+      toast.error(message);
+    } finally {
       setMutationLoading(null);
-      return;
     }
-
-    const { error: optionError } = await supabase.from("poll_options").insert(
-      options.map((option, index) => ({
-        poll_id: (poll as { id: string }).id,
-        option_text: option,
-        sequence: index + 1,
-      })),
-    );
-
-    setMutationLoading(null);
-
-    if (optionError) {
-      toast.error(optionError.message);
-      return;
-    }
-
-    toast.success("Poll created.");
-    setPollModal({ open: false, activityId: "", activityTitle: "" });
-    setPollQuestion("Which option should we choose?");
-    setPollOptions(["", ""]);
   }
 
   async function handleVote(poll: PollRow, option: PollOptionRow) {
@@ -577,13 +591,14 @@ export default function TimelineView({
                             canCreatePoll && act.status !== "CONFIRMED" && (
                               <button
                                 type="button"
-                                onClick={() =>
+                                onClick={() => {
+                                  setPollError(null);
                                   setPollModal({
                                     open: true,
                                     activityId: act.id,
                                     activityTitle: act.title,
-                                  })
-                                }
+                                  });
+                                }}
                                 className="mt-3 rounded-md border border-dashed border-brand-300 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 dark:border-brand-800 dark:text-brand-300 dark:hover:bg-brand-950/30"
                                 data-testid={`btn-create-poll-${act.id}`}
                               >
@@ -787,7 +802,10 @@ export default function TimelineView({
 
       <Modal
         open={pollModal.open}
-        onClose={() => setPollModal({ open: false, activityId: "", activityTitle: "" })}
+        onClose={() => {
+          setPollError(null);
+          setPollModal({ open: false, activityId: "", activityTitle: "" });
+        }}
         title="Create Voting Poll"
       >
         <form onSubmit={handleCreatePoll} data-testid="create-poll-form">
@@ -850,11 +868,23 @@ export default function TimelineView({
                 Add at least 2 alternatives. Empty optional fields are ignored.
               </p>
             </div>
+            {pollError && (
+              <div
+                role="alert"
+                className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
+                data-testid="create-poll-error"
+              >
+                {pollError}
+              </div>
+            )}
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setPollModal({ open: false, activityId: "", activityTitle: "" })}
+              onClick={() => {
+                setPollError(null);
+                setPollModal({ open: false, activityId: "", activityTitle: "" });
+              }}
               className="btn-secondary"
             >
               Cancel

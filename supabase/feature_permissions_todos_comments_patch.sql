@@ -104,6 +104,10 @@ declare
   current_role public.role;
   override_value boolean;
 begin
+  if public.is_room_host(target_room_id, target_user_id) then
+    return true;
+  end if;
+
   select public.get_room_role(target_room_id, target_user_id)
   into current_role;
 
@@ -347,7 +351,10 @@ using (
     from public.activity_blocks ab
     join public.days d on d.id = ab.day_id
     where ab.id = polls.activity_block_id
-      and public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
   )
 )
 with check (
@@ -356,7 +363,10 @@ with check (
     from public.activity_blocks ab
     join public.days d on d.id = ab.day_id
     where ab.id = polls.activity_block_id
-      and public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
   )
 );
 
@@ -374,7 +384,10 @@ using (
     join public.activity_blocks ab on ab.id = p.activity_block_id
     join public.days d on d.id = ab.day_id
     where p.id = poll_options.poll_id
-      and public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
   )
 )
 with check (
@@ -384,7 +397,10 @@ with check (
     join public.activity_blocks ab on ab.id = p.activity_block_id
     join public.days d on d.id = ab.day_id
     where p.id = poll_options.poll_id
-      and public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_polls')
+      )
   )
 );
 

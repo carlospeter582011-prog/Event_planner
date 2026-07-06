@@ -1,0 +1,74 @@
+{
+  "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
+  "type": "frontend",
+  "name": "Synchrona two-account room join and RBAC transfer flow",
+  "description": "Verify Synchrona production supports moving between two authenticated accounts, joining a host-created room from a second account, rendering both participants, and enforcing visible RBAC boundaries. The first account is the host. The second account should join through the copied invite link or room code and start with non-host permissions unless the host changes them.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Navigate to https://event-planner-carlos.vercel.app/auth/signin.",
+      "expected": "The sign-in form loads without a server error."
+    },
+    {
+      "type": "action",
+      "description": "Sign in as carlospeter582011@gmail.com using password K@ko2011.",
+      "expected": "The dashboard loads for the first account."
+    },
+    {
+      "type": "action",
+      "description": "Create a new room named 'TestSprite Two Account Event' with description 'Two account RBAC verification' and budget cap 900, or open an existing matching room if already present.",
+      "expected": "The room workspace opens and the first account is marked HOST."
+    },
+    {
+      "type": "action",
+      "description": "Open the Invite control and capture either the invite link or room code shown in the popup.",
+      "expected": "The invite popup exposes a usable full room link or room code."
+    },
+    {
+      "type": "action",
+      "description": "Sign out from the first account, then sign in as drpeterramsis2007@gmail.com using password K@ko2011.",
+      "expected": "The second account can authenticate and lands on the dashboard."
+    },
+    {
+      "type": "action",
+      "description": "Use the captured invite link or room code to join the host-created room.",
+      "expected": "The second account enters the same room workspace without an auth loop, 404, or missing-room error."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the room header, secure slug, navigation tabs, budget summary, and participant sidebar are visible for the second account.",
+      "expected": "The joined-room interface is readable and does not show fatal app errors."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the participant list shows both accounts and the second account is not incorrectly marked as HOST.",
+      "expected": "The app preserves the first account as Host and adds the second account as a separate participant."
+    },
+    {
+      "type": "assertion",
+      "description": "As the second account, check that Host-only controls such as global budget cap editing, deleting items, clearing room chat, and changing participant permissions are absent or disabled unless explicitly granted.",
+      "expected": "RBAC boundaries are visible and enforceable for the second account."
+    },
+    {
+      "type": "action",
+      "description": "As the second account, attempt allowed participant actions: open Timeline, add a vote to an open poll if one exists, open Tasks, and post a room chat message if chat permission is available.",
+      "expected": "Allowed actions either succeed with loading/success feedback or show a clear human-readable permission message."
+    },
+    {
+      "type": "action",
+      "description": "Sign out from the second account, sign back in as carlospeter582011@gmail.com, reopen the room, and inspect the participant sidebar.",
+      "expected": "The host account can return to the room and see the second account listed."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the Host User Controller can select the second participant and shows granular permission toggles for manage users, edit budget, edit itinerary, create polls, resolve polls, create public to-dos, vote, chat, moderate chat, and moderate comments.",
+      "expected": "The host can manage the second account through explicit testable controls."
+    },
+    {
+      "type": "assertion",
+      "description": "Report any bad UI behavior, including controls hidden behind modals, stuck loading states, missing success/error feedback, overflowing text, disabled buttons without explanation, or confusing account identity display.",
+      "expected": "All visible defects are reported with the affected screen and control."
+    }
+  ]
+}

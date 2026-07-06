@@ -48,3 +48,5 @@ Iteration 38: Fixed large budget values overflowing budget cards and changed Hos
 Iteration 39: Hardened budget cards, usage labels, and activity cost rows against huge currency values with zero-min grid tracks and forced wrapping -> Build passes -> Push pending.
 Iteration 40: Fixed room permission override RLS bootstrap by explicitly allowing room hosts to insert/update override rows before delegated manage-users permissions exist -> SQL patch updated -> Push pending.
 Iteration 41: Updated resume.md handoff with granular permissions, comments, private/public to-dos, SQL patch history, TestSprite coverage, recent commits, and next steps -> Documentation only -> Push pending.
+2026-07-06 - Added TestSprite two-account RBAC transfer plan covering host login, second-account room join, participant visibility, and permission boundary reporting.
+2026-07-06 - Recorded TestSprite production run results, including public pass, authenticated poll-creation failure, and two-account RBAC transfer pass.

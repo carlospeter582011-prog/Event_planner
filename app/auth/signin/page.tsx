@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured, missingSupabaseMessage } from "@/lib/supabase/config";
@@ -26,6 +26,18 @@ export default function SignInPage() {
 
   const isSignUp = mode === "signup";
   const supabaseConfigured = isSupabaseConfigured();
+
+  useEffect(() => {
+    if (!supabaseConfigured) return;
+
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        router.replace(redirectPath);
+        router.refresh();
+      }
+    });
+  }, [redirectPath, router, supabaseConfigured]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -59,8 +71,8 @@ export default function SignInPage() {
         toast.success("Welcome back!");
       }
 
-      router.push(redirectPath);
-      router.refresh();
+      await waitForReadableSession(supabase);
+      window.location.assign(redirectPath);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "An unexpected error occurred.";
@@ -236,4 +248,15 @@ export default function SignInPage() {
       </div>
     </main>
   );
+}
+
+async function waitForReadableSession(supabase: ReturnType<typeof createClient>) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (session) return;
+    await new Promise((resolve) => window.setTimeout(resolve, 100));
+  }
 }

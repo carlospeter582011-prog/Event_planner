@@ -1,5 +1,70 @@
 # Synchrona Resume for New AI Chat
 
+## Latest Handoff Update - 2026-07-06
+
+Current workspace: `E:\Testsprite_H\Event_Planner`
+
+Current production URL: `https://event-planner-carlos.vercel.app`
+
+Current latest pushed commit: `b1b863a fix(room): make toggles immediate and repair permission rls`
+
+Working tree status before this resume update was clean.
+
+Most recent verification:
+- `npm run build` passed after `b1b863a`.
+- Full strict TestSprite two-account run passed:
+  - Test ID: `86f16751-7bda-4ad7-82e5-e142300a5e94`
+  - Run ID: `8fb1a815-301e-4066-8c10-206b536d463b`
+  - Code version: `v2`
+  - Result: `passed`
+  - Steps: `16/16 passed`
+  - Report file: `testsprite_tests/testsprite_full_run_2026-07-06.md`
+
+Latest important fixes after the older sections below:
+- Auth persistence: `712ba3e fix(auth): keep saved sessions across reopen`
+  - Browser Supabase client is now a singleton in `lib/supabase/client.ts`.
+  - Auth persistence/refresh options are explicit.
+  - Sign-in page shows `Checking your saved session...` before showing the form, so users with valid saved sessions are redirected instead of seeing a misleading login prompt.
+  - Added `testsprite_tests/synchrona_auth_persistence_reopen.py`.
+- Poll deletion and voter visibility: `638604a feat(polls): add delete permission and voter visibility`
+  - Added `delete_polls` permission to `types/index.ts`.
+  - Host User Controller can grant/revoke `Delete polls`.
+  - `timeline-view.tsx` now shows poll voter names and a delete poll button when permitted.
+  - Poll delete RLS added to `supabase/fix_poll_permissions_patch.sql` and `supabase/feature_permissions_todos_comments_patch.sql`.
+- Days/activity RLS: `e2c5746 fix(timeline): honor itinerary edit permission in rls`
+  - Viewer add-day/activity permission is controlled by `manage_itinerary`.
+  - Apply `supabase/fix_itinerary_permissions_patch.sql` if live Supabase still blocks `days` inserts.
+- Chat RLS: `f6a7e8d fix(chat): allow room message sends through rls` and `b1b863a`
+  - `chat-view.tsx` now self-heals a missing participant row before sending room chat.
+  - Apply `supabase/fix_chat_permissions_patch.sql` if live Supabase still reports `new row violates row-level security policy for table "room_messages"`.
+- Comment RLS:
+  - Added `supabase/fix_comment_permissions_patch.sql`.
+  - `comments-panel.tsx` now exposes inline comment errors through stable `data-testid` values.
+  - Apply this file if live Supabase reports `new row violates row-level security policy for table "room_comments"`.
+- Permission override RLS and checkbox immediacy: `b1b863a fix(room): make toggles immediate and repair permission rls`
+  - Added `supabase/fix_permission_overrides_patch.sql`.
+  - Apply it if Host User Controller reports `new row violates row-level security policy for table "room_permission_overrides"`.
+  - Permission checkboxes now update optimistically immediately and roll back on save failure.
+  - To-do checkboxes now update optimistically immediately and roll back on save failure.
+  - Permission-save errors are visible in Host User Controller with `data-testid="permission-save-error"`.
+- Budget usage label: `0fcd573 fix(budget): show allocated value under usage bar`
+  - The left label under the budget usage bar now shows allocated spend instead of a hardcoded `$0.00`.
+  - Budget activity totals are scoped to the current room.
+
+SQL files most likely needed for live Supabase if user reports RLS errors:
+- `supabase/fix_permission_overrides_patch.sql`
+- `supabase/fix_chat_permissions_patch.sql`
+- `supabase/fix_comment_permissions_patch.sql`
+- `supabase/fix_itinerary_permissions_patch.sql`
+- `supabase/fix_poll_permissions_patch.sql`
+- Or run the full `supabase/feature_permissions_todos_comments_patch.sql` after `supabase/schema.sql`.
+
+Important current behavior:
+- Full two-account TestSprite regression has passed on production after uploading the local strict script as TestSprite code version `v2`.
+- If running TestSprite again, avoid repeated rerun loops to save credits. Run once with a bounded timeout, gather result/analysis, and only rerun after a code or SQL fix.
+- The user has repeatedly reported live Supabase RLS errors. In many cases the code fix is already present, but the matching SQL hotfix must still be applied in Supabase SQL Editor for production data policies to change.
+- The user wants fast, direct fixes and gets frustrated by repeated sign-in and delayed checkbox UI. Prioritize visible immediate feedback and stable inline error messages.
+
 ## Project Overview
 
 Synchrona is a TestSprite Hackathon project: a real-time collaborative event planner for multi-day event rooms. Authenticated users can create secure rooms, invite others by full link or room code, build day-by-day itineraries, create activity voting polls with expandable options, manage private/public to-do lists, write comments across room surfaces, track budget usage, and collaborate through moderated room chat.
@@ -11,8 +76,8 @@ The app is a Next.js 16 App Router project with Supabase Auth, Supabase database
 - Workspace: `E:\Testsprite_H\Event_Planner`
 - GitHub remote: `https://github.com/carlospeter582011-prog/Event_planner`
 - Production URL: `https://event-planner-carlos.vercel.app`
-- Latest pushed commit at the time of this file: `794769c test(testsprite): add exhaustive two-account coverage`
-- Latest verified local build: `npm run build` passed after `20108ed fix(polls): surface creation errors and patch rls`.
+- Latest pushed commit at the time of this file: `b1b863a fix(room): make toggles immediate and repair permission rls`
+- Latest verified local build: `npm run build` passed after `b1b863a`.
 - Latest inspected production deployment was Ready and aliased to `https://event-planner-carlos.vercel.app`.
 - Working tree was clean before this `resume.md` update.
 
@@ -123,6 +188,7 @@ Granular permission keys currently used in the app:
 - `manage_budget`
 - `manage_itinerary`
 - `manage_polls`
+- `delete_polls`
 - `resolve_polls`
 - `manage_tasks`
 - `create_public_tasks`
@@ -209,6 +275,8 @@ Tracked plans:
 - `testsprite_tests/synchrona_strict_two_account_full_feature.py`
 - `testsprite_tests/testsprite_run_2026-07-06.md`
 - `testsprite_tests/testsprite_exhaustive_run_2026-07-06.md`
+- `testsprite_tests/testsprite_full_run_2026-07-06.md`
+- `testsprite_tests/synchrona_auth_persistence_reopen.py`
 - `testsprite_tests/synchrona_phase5_smoke_test.md`
 
 The authenticated plan now includes a full project description for TestSprite: room creation, invite controls, Command Center, granular permissions, timeline, polls, private/public to-dos, comments, budget, and chat moderation.
@@ -257,6 +325,14 @@ vercel inspect <deployment-url>
 
 ## Recent Commit Summary
 
+- `b1b863a fix(room): make toggles immediate and repair permission rls`
+- `0fcd573 fix(budget): show allocated value under usage bar`
+- `f35b444 test(testsprite): record full two-account pass`
+- `712ba3e fix(auth): keep saved sessions across reopen`
+- `638604a feat(polls): add delete permission and voter visibility`
+- `e2c5746 fix(timeline): honor itinerary edit permission in rls`
+- `aafbd52 fix(auth): wait for persisted session before redirect`
+- `f6a7e8d fix(chat): allow room message sends through rls`
 - `794769c test(testsprite): add exhaustive two-account coverage`
 - `20108ed fix(polls): surface creation errors and patch rls`
 - `28aeb8b test(testsprite): add two-account rbac run report`

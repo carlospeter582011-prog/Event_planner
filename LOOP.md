@@ -67,3 +67,4 @@ Iteration 41: Updated resume.md handoff with granular permissions, comments, pri
 2026-07-06 - Fixed budget usage labels so the left value shows allocated spend instead of a static zero and scoped budget activity totals to the current room.
 2026-07-06 - Added resilient chat participant self-heal, permission override RLS hotfix coverage, and immediate optimistic checkbox updates for permissions and to-dos.
 2026-07-06 - Updated resume.md with the latest agent handoff state, recent commits, TestSprite pass, RLS hotfix files, and current behavioral notes.
+2026-07-06 - Hardened permission override RLS SQL so HOST participants can insert/update room_permission_overrides even if helper policies are partially stale in production.

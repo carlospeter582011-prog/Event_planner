@@ -192,10 +192,24 @@ for all
 to authenticated
 using (
   public.is_room_host(room_id, auth.uid())
+  or exists (
+    select 1
+    from public.room_participants rp
+    where rp.room_id = room_permission_overrides.room_id
+      and rp.user_id = auth.uid()
+      and rp.role = 'HOST'
+  )
   or public.can_room(room_id, auth.uid(), 'manage_users')
 )
 with check (
   public.is_room_host(room_id, auth.uid())
+  or exists (
+    select 1
+    from public.room_participants rp
+    where rp.room_id = room_permission_overrides.room_id
+      and rp.user_id = auth.uid()
+      and rp.role = 'HOST'
+  )
   or public.can_room(room_id, auth.uid(), 'manage_users')
 );
 

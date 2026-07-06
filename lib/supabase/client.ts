@@ -1,5 +1,6 @@
 import { createBrowserClient } from "@supabase/ssr";
 import { getSupabaseConfig, missingSupabaseMessage } from "./config";
+import { supabaseCookieOptions } from "./cookies";
 
 /**
  * Browser-side Supabase client.
@@ -16,5 +17,7 @@ export function createClient() {
     throw new Error(missingSupabaseMessage);
   }
 
-  return createBrowserClient(config.url, config.anonKey);
+  return createBrowserClient(config.url, config.anonKey, {
+    cookieOptions: supabaseCookieOptions,
+  });
 }

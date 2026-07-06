@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { getSupabaseConfig } from "./config";
+import { supabaseCookieOptions } from "./cookies";
 
 /**
  * Refreshes the Supabase auth session on every request and guards
@@ -33,6 +34,7 @@ export async function updateSession(request: NextRequest) {
     config.url,
     config.anonKey,
     {
+      cookieOptions: supabaseCookieOptions,
       cookies: {
         getAll() {
           return request.cookies.getAll();

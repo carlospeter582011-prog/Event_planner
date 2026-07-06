@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabaseConfig, missingSupabaseMessage } from "./config";
+import { supabaseCookieOptions } from "./cookies";
 
 /**
  * Server-side Supabase client for use in Server Components,
@@ -23,6 +24,7 @@ export async function createClient() {
     config.url,
     config.anonKey,
     {
+      cookieOptions: supabaseCookieOptions,
       cookies: {
         getAll() {
           return cookieStore.getAll();

@@ -58,3 +58,4 @@ Iteration 41: Updated resume.md handoff with granular permissions, comments, pri
 2026-07-06 - Fixed poll creation to avoid destructive rollback deletes and made Command Center remaining values shrink/wrap inside metric cards.
 2026-07-06 - Made Supabase auth cookies explicitly persistent across browser restarts in browser, server, and proxy clients.
 2026-07-06 - Changed large remaining budget values to shrink on one line instead of wrapping in Command and Budget cards.
+2026-07-06 - Fixed chat RLS failure handling with host participant self-heal, visible chat send errors, and a room_messages permission SQL hotfix.

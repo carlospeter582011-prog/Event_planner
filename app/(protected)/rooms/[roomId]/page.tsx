@@ -42,23 +42,31 @@ export default async function RoomPage({ params }: PageProps) {
   if (!room) redirect("/dashboard");
 
   const resolvedRoomId = (room as { id: string }).id;
+  const hostId = (room as { host_id: string }).host_id;
+  const currentUserIsHost = hostId === user.id;
 
   const { data: participant } = await supabase
     .from("room_participants")
-    .select("role")
+    .select("id, role")
     .eq("room_id", resolvedRoomId)
     .eq("user_id", user.id)
     .maybeSingle();
 
-  let role = (participant as { role: Role } | null)?.role ?? null;
+  let role = (participant as { id: string; role: Role } | null)?.role ?? null;
 
   if (!role) {
     await supabase.from("room_participants").insert({
       room_id: resolvedRoomId,
       user_id: user.id,
-      role: "VIEWER",
+      role: currentUserIsHost ? "HOST" : "VIEWER",
     });
-    role = "VIEWER";
+    role = currentUserIsHost ? "HOST" : "VIEWER";
+  } else if (currentUserIsHost && role !== "HOST") {
+    await supabase
+      .from("room_participants")
+      .update({ role: "HOST" })
+      .eq("id", (participant as { id: string }).id);
+    role = "HOST";
   }
 
   const { data: participants } = await supabase

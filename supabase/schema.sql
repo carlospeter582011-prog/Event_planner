@@ -453,22 +453,34 @@ CREATE POLICY "Editors can manage tasks"
   );
 
 -- --- room_messages ---
-CREATE POLICY "Participants can view room messages"
+CREATE POLICY "Users with chat permission can view room messages"
   ON public.room_messages FOR SELECT
   TO authenticated
   USING (
-    room_id IN (
-      SELECT room_id FROM public.room_participants WHERE user_id = auth.uid()
+    EXISTS (
+      SELECT 1 FROM public.rooms r WHERE r.id = room_id AND r.host_id = auth.uid()
+    )
+    OR room_id IN (
+      SELECT room_id
+      FROM public.room_participants
+      WHERE user_id = auth.uid()
     )
   );
 
-CREATE POLICY "Participants can send room messages"
+CREATE POLICY "Users with chat permission can send room messages"
   ON public.room_messages FOR INSERT
   TO authenticated
   WITH CHECK (
     user_id = auth.uid()
-    AND room_id IN (
-      SELECT room_id FROM public.room_participants WHERE user_id = auth.uid()
+    AND (
+      EXISTS (
+        SELECT 1 FROM public.rooms r WHERE r.id = room_id AND r.host_id = auth.uid()
+      )
+      OR room_id IN (
+        SELECT room_id
+        FROM public.room_participants
+        WHERE user_id = auth.uid()
+      )
     )
   );
 

@@ -429,8 +429,19 @@ with check (
 -- Chat moderation
 -- ---------------------------------------------------------------------
 
+drop policy if exists "Participants can view room messages" on public.room_messages;
+drop policy if exists "Users with chat permission can view room messages" on public.room_messages;
 drop policy if exists "Participants can send room messages" on public.room_messages;
 drop policy if exists "Users with chat permission can send room messages" on public.room_messages;
+
+create policy "Users with chat permission can view room messages"
+on public.room_messages
+for select
+to authenticated
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'chat')
+);
 
 create policy "Users with chat permission can send room messages"
 on public.room_messages
@@ -438,7 +449,10 @@ for insert
 to authenticated
 with check (
   user_id = auth.uid()
-  and public.can_room(room_id, auth.uid(), 'chat')
+  and (
+    public.is_room_host(room_id, auth.uid())
+    or public.can_room(room_id, auth.uid(), 'chat')
+  )
 );
 
 drop policy if exists "Users can delete own room messages" on public.room_messages;
@@ -454,7 +468,10 @@ create policy "Chat moderators can delete room messages"
 on public.room_messages
 for delete
 to authenticated
-using (public.can_room(room_id, auth.uid(), 'manage_chat'));
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_chat')
+);
 
 -- ---------------------------------------------------------------------
 -- Generic room comments

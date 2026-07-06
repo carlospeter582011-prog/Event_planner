@@ -34,6 +34,7 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
   const [deleting, setDeleting] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
   const [schemaMissing, setSchemaMissing] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const fetchMessages = useCallback(async () => {
     const { data, error } = await supabase
@@ -79,6 +80,7 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
     e.preventDefault();
     if (!body.trim() || !permissions.chat) return;
 
+    setSendError(null);
     setSaving(true);
     const { error } = await supabase.from("room_messages").insert({
       room_id: roomId,
@@ -88,6 +90,7 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
     setSaving(false);
 
     if (error) {
+      setSendError(error.message);
       toast.error(error.message);
       return;
     }
@@ -244,6 +247,15 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
           {saving ? <Spinner className="h-4 w-4" /> : "Send"}
         </button>
       </form>
+      {sendError && (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
+          role="alert"
+          data-testid="chat-send-error"
+        >
+          {sendError}
+        </div>
+      )}
     </section>
   );
 }

@@ -55,3 +55,4 @@ Iteration 41: Updated resume.md handoff with granular permissions, comments, pri
 2026-07-06 - Added strict custom TestSprite Playwright script to force real host/second-account switching and full-room interaction checks.
 2026-07-06 - Ran exhaustive and strict two-account TestSprite production tests, then documented pass/fail evidence and selector fragility findings.
 2026-07-06 - Updated resume.md handoff with latest poll RLS fix, TestSprite strict two-account coverage, selector fragility notes, commits, and next steps.
+2026-07-06 - Fixed poll creation to avoid destructive rollback deletes and made Command Center remaining values shrink/wrap inside metric cards.

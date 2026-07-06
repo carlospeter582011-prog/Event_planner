@@ -296,7 +296,6 @@ export default function TimelineView({
       );
 
       if (optionError) {
-        await supabase.from("polls").delete().eq("id", (poll as { id: string }).id);
         throw new Error(optionError.message);
       }
 

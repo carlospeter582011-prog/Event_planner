@@ -1,0 +1,124 @@
+{
+  "projectId": "e6c860f4-a64c-460c-bfbb-7a1475e7d64c",
+  "type": "frontend",
+  "name": "Synchrona exhaustive two-account full feature regression",
+  "description": "Run a broad production regression for Synchrona using both supplied accounts. TestSprite should switch between the host account and second participant account multiple times and inspect every major feature: public entry, authentication, dashboard, room creation, invite/join, Command Center, timeline, activity blocks, poll creation, voting, host resolution, RBAC controls, tasks, budget, comments, and chat. Report every visible broken flow, bad UI state, missing feedback message, overflow, stuck modal, permission problem, or feature that cannot be completed.",
+  "priority": "p0",
+  "planSteps": [
+    {
+      "type": "action",
+      "description": "Open https://event-planner-carlos.vercel.app and verify the public landing page loads, the Synchrona brand is visible, and Sign in / Get started actions are reachable.",
+      "expected": "The public page has no 500 error, missing Supabase config warning, hydration crash, blank screen, or broken navigation."
+    },
+    {
+      "type": "action",
+      "description": "Navigate to the sign-in page and sign in with carlospeter582011@gmail.com using password K@ko2011.",
+      "expected": "The host account authenticates and lands on the dashboard."
+    },
+    {
+      "type": "assertion",
+      "description": "Inspect the dashboard for My Event Rooms, New room, existing room cards, sign out, theme toggle, and visible account identity.",
+      "expected": "Dashboard controls are visible, understandable, and do not overlap or truncate important text."
+    },
+    {
+      "type": "action",
+      "description": "Create a new room named 'TestSprite Exhaustive Event' with description 'Full two-account feature regression' and budget cap 1200.",
+      "expected": "A room is created, the host is assigned HOST, and the room workspace opens with a secure non-guessable slug."
+    },
+    {
+      "type": "assertion",
+      "description": "Verify the room shell: header, HOST badge, secure slug, Invite button, Dashboard button, Command/Timeline/Tasks/Budget/Chat tabs, participant count, participant sidebar, RBAC summary, and Host User Controller.",
+      "expected": "All room-level navigation and role surfaces are visible and usable."
+    },
+    {
+      "type": "action",
+      "description": "Open the Invite popup, copy or remember both the invite link and room code, and verify copy-link/copy-code/share actions are present.",
+      "expected": "Invite controls expose a usable link or code without UI overlap or dead controls."
+    },
+    {
+      "type": "assertion",
+      "description": "Open the Command tab and inspect readiness score, open polls metric, task progress metric, budget health metric, verification checklist, participant permission matrix, and permission labels.",
+      "expected": "Command Center summarizes room health and permissions in a testable way."
+    },
+    {
+      "type": "action",
+      "description": "Open Timeline. Add Day 1 titled 'Arrival Day' with date 2026-08-10. Add an activity titled 'Welcome Dinner' with description 'Team kickoff dinner', location 'Main Hall', cost 250, status Proposed, and optional start/end times if available.",
+      "expected": "The day and activity appear in order with title, description, location, cost, time, and Proposed status."
+    },
+    {
+      "type": "action",
+      "description": "On the activity, create a voting poll with question 'Where should dinner happen?' and at least six options by using Add option: Main Hall Buffet, Rooftop Dinner, Garden Venue, Seafood House, Private Lounge, and Local Bistro.",
+      "expected": "The poll creation button shows a loading state, closes only on success, the new poll appears on the timeline, and if creation is blocked, a visible human-readable inline error or alert explains why."
+    },
+    {
+      "type": "action",
+      "description": "If the poll exists, vote as the host for one option and verify the vote count/bar updates. If it does not exist, record the exact visible error text and continue to later tabs instead of stopping the entire inspection.",
+      "expected": "Voting succeeds with visible count/bar feedback, or the blocking poll error is documented."
+    },
+    {
+      "type": "action",
+      "description": "Add a timeline-level comment and an activity-level comment.",
+      "expected": "Comments post successfully, appear under the correct surface, and expose delete/moderation controls only where permitted."
+    },
+    {
+      "type": "action",
+      "description": "Open Tasks. Create one private to-do titled 'Confirm catering' and one public to-do titled 'Publish agenda' with due dates and different priorities. Toggle a task complete and add a task comment.",
+      "expected": "Private/public scopes, priority labels, due dates, checkbox state, progress, and comments render correctly."
+    },
+    {
+      "type": "action",
+      "description": "Open Budget. Verify cap, allocated amount, confirmed amount, remaining balance, usage bar, activity cost breakdown, and budget comments. Add a budget comment.",
+      "expected": "Budget values are correct, no large-number overflow occurs, and comments work."
+    },
+    {
+      "type": "action",
+      "description": "Try to create or edit activity costs so allocated cost exceeds the 1200 budget cap, then inspect warning behavior and whether confirming further costly activities is blocked.",
+      "expected": "A visible budget violation warning appears and the app prevents or clearly explains blocked costly confirmations."
+    },
+    {
+      "type": "action",
+      "description": "Open Chat. Send a host chat message, delete the host's own message, send another message, and verify host moderation/clear-chat controls if present.",
+      "expected": "Chat send/delete/moderation states work with visible success or error feedback."
+    },
+    {
+      "type": "action",
+      "description": "Sign out from the host account, sign in with drpeterramsis2007@gmail.com using password K@ko2011, and join the same room using the captured invite link or room code.",
+      "expected": "The second account can move into the host-created room without auth loops, wrong-room routing, 404, or missing participant errors."
+    },
+    {
+      "type": "assertion",
+      "description": "As the second account, verify the room header, secure slug, tabs, budget, timeline, tasks, comments, chat, and participant sidebar render. Confirm the second account is not mislabeled as HOST.",
+      "expected": "The second account sees the same room as a participant with correct non-host role boundaries."
+    },
+    {
+      "type": "action",
+      "description": "As the second account, vote in the open poll if available, change the vote to another option, add a timeline comment, add an activity comment, create a private to-do, and send a chat message.",
+      "expected": "Allowed participant actions succeed and update visible live state; disallowed actions show clear permission feedback."
+    },
+    {
+      "type": "assertion",
+      "description": "As the second account, verify Host-only controls are absent or disabled: changing global budget cap, deleting room items, clearing chat, changing participant permissions, resolving polls, and deleting other users' content.",
+      "expected": "RBAC prevents privilege escalation and the UI communicates unavailable capabilities clearly."
+    },
+    {
+      "type": "action",
+      "description": "Sign out from the second account, sign back in as carlospeter582011@gmail.com, reopen the room, and verify the second participant, their comments, their task, their chat message, and their vote are visible.",
+      "expected": "Cross-account state persisted and synchronized into the host view."
+    },
+    {
+      "type": "action",
+      "description": "As host, use the Host User Controller to select the second participant and toggle granular permissions: create polls, vote, chat, create public to-dos, manage tasks, manage comments, and moderate chat. Switch to the second account again and verify the changed permissions take effect.",
+      "expected": "Granular permission changes persist, update UI capabilities, and do not accidentally change the host account."
+    },
+    {
+      "type": "action",
+      "description": "If a poll exists, return to the host account, resolve it by committing the top choice or a manual option, and verify the activity becomes Confirmed. If no poll exists due to an earlier error, document that host poll resolution could not be completed.",
+      "expected": "Poll resolution works only for the host/authorized user and writes the final confirmed activity state."
+    },
+    {
+      "type": "assertion",
+      "description": "Perform a final visual and functional audit across all tabs. Explicitly report bad UI: overlapping text, clipped controls, stuck spinners, disabled buttons without reason, modals blocking content, missing success/error messages, confusing identity display, stale live data, and any feature that cannot be completed.",
+      "expected": "The final report lists every broken or suspicious behavior with the affected account, screen, and control."
+    }
+  ]
+}

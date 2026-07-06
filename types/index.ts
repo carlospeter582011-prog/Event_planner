@@ -253,7 +253,7 @@ export const permissionColumnByKey: Record<PermissionKey, keyof RoomPermissionOv
 export const permissionLabels: Record<PermissionKey, string> = {
   manage_settings: "Edit room settings",
   manage_budget: "Edit budget",
-  manage_itinerary: "Edit itinerary",
+  manage_itinerary: "Add/edit timeline days and activities",
   manage_polls: "Create polls",
   resolve_polls: "Resolve polls",
   manage_tasks: "Manage to-do lists",

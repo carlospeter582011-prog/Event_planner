@@ -293,8 +293,13 @@ CREATE POLICY "Participants can view days"
   ON public.days FOR SELECT
   TO authenticated
   USING (
-    room_id IN (
-      SELECT room_id FROM public.room_participants WHERE user_id = auth.uid()
+    EXISTS (
+      SELECT 1 FROM public.rooms r WHERE r.id = room_id AND r.host_id = auth.uid()
+    )
+    OR room_id IN (
+      SELECT room_id
+      FROM public.room_participants
+      WHERE user_id = auth.uid()
     )
   );
 
@@ -303,8 +308,22 @@ CREATE POLICY "Editors can manage days"
   ON public.days FOR ALL
   TO authenticated
   USING (
-    room_id IN (
-      SELECT room_id FROM public.room_participants
+    EXISTS (
+      SELECT 1 FROM public.rooms r WHERE r.id = room_id AND r.host_id = auth.uid()
+    )
+    OR room_id IN (
+      SELECT room_id
+      FROM public.room_participants
+      WHERE user_id = auth.uid() AND role IN ('HOST', 'EDITOR')
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.rooms r WHERE r.id = room_id AND r.host_id = auth.uid()
+    )
+    OR room_id IN (
+      SELECT room_id
+      FROM public.room_participants
       WHERE user_id = auth.uid() AND role IN ('HOST', 'EDITOR')
     )
   );
@@ -316,8 +335,14 @@ CREATE POLICY "Participants can view activities"
   USING (
     day_id IN (
       SELECT d.id FROM public.days d
-      JOIN public.room_participants rp ON d.room_id = rp.room_id
-      WHERE rp.user_id = auth.uid()
+      WHERE EXISTS (
+        SELECT 1 FROM public.rooms r WHERE r.id = d.room_id AND r.host_id = auth.uid()
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.room_participants rp
+        WHERE rp.room_id = d.room_id AND rp.user_id = auth.uid()
+      )
     )
   );
 
@@ -328,8 +353,31 @@ CREATE POLICY "Editors can manage activities"
   USING (
     day_id IN (
       SELECT d.id FROM public.days d
-      JOIN public.room_participants rp ON d.room_id = rp.room_id
-      WHERE rp.user_id = auth.uid() AND rp.role IN ('HOST', 'EDITOR')
+      WHERE EXISTS (
+        SELECT 1 FROM public.rooms r WHERE r.id = d.room_id AND r.host_id = auth.uid()
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.room_participants rp
+        WHERE rp.room_id = d.room_id
+          AND rp.user_id = auth.uid()
+          AND rp.role IN ('HOST', 'EDITOR')
+      )
+    )
+  )
+  WITH CHECK (
+    day_id IN (
+      SELECT d.id FROM public.days d
+      WHERE EXISTS (
+        SELECT 1 FROM public.rooms r WHERE r.id = d.room_id AND r.host_id = auth.uid()
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM public.room_participants rp
+        WHERE rp.room_id = d.room_id
+          AND rp.user_id = auth.uid()
+          AND rp.role IN ('HOST', 'EDITOR')
+      )
     )
   );
 

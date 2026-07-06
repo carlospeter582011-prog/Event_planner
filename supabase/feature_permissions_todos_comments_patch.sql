@@ -210,6 +210,85 @@ using (public.can_room(room_id, auth.uid(), 'manage_users'))
 with check (public.can_room(room_id, auth.uid(), 'manage_users'));
 
 -- ---------------------------------------------------------------------
+-- Itinerary day/activity policies
+-- ---------------------------------------------------------------------
+
+drop policy if exists "Participants can view days" on public.days;
+drop policy if exists "Editors can manage days" on public.days;
+drop policy if exists "Users with itinerary permission can view days" on public.days;
+drop policy if exists "Users with itinerary permission can manage days" on public.days;
+
+create policy "Users with itinerary permission can view days"
+on public.days
+for select
+to authenticated
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.get_room_role(room_id, auth.uid()) is not null
+);
+
+create policy "Users with itinerary permission can manage days"
+on public.days
+for all
+to authenticated
+using (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_itinerary')
+)
+with check (
+  public.is_room_host(room_id, auth.uid())
+  or public.can_room(room_id, auth.uid(), 'manage_itinerary')
+);
+
+drop policy if exists "Participants can view activities" on public.activity_blocks;
+drop policy if exists "Editors can manage activities" on public.activity_blocks;
+drop policy if exists "Users with itinerary permission can view activities" on public.activity_blocks;
+drop policy if exists "Users with itinerary permission can manage activities" on public.activity_blocks;
+
+create policy "Users with itinerary permission can view activities"
+on public.activity_blocks
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.days d
+    where d.id = activity_blocks.day_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.get_room_role(d.room_id, auth.uid()) is not null
+      )
+  )
+);
+
+create policy "Users with itinerary permission can manage activities"
+on public.activity_blocks
+for all
+to authenticated
+using (
+  exists (
+    select 1
+    from public.days d
+    where d.id = activity_blocks.day_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_itinerary')
+      )
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.days d
+    where d.id = activity_blocks.day_id
+      and (
+        public.is_room_host(d.room_id, auth.uid())
+        or public.can_room(d.room_id, auth.uid(), 'manage_itinerary')
+      )
+  )
+);
+
+-- ---------------------------------------------------------------------
 -- Private/public room to-dos
 -- ---------------------------------------------------------------------
 

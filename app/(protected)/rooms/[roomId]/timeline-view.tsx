@@ -75,6 +75,7 @@ export default function TimelineView({
   const [addDayOpen, setAddDayOpen] = useState(false);
   const [newDayTitle, setNewDayTitle] = useState("");
   const [newDayDate, setNewDayDate] = useState("");
+  const [dayError, setDayError] = useState<string | null>(null);
   const [activityModal, setActivityModal] = useState<{
     open: boolean;
     dayId: string;
@@ -188,6 +189,7 @@ export default function TimelineView({
   // Add day
   async function handleAddDay(e: React.FormEvent) {
     e.preventDefault();
+    setDayError(null);
     if (!newDayDate) return;
     const maxOrder = days.length > 0 ? Math.max(...days.map((d) => d.sequence_order)) : 0;
     const { error } = await supabase.from("days").insert({
@@ -196,7 +198,11 @@ export default function TimelineView({
       title: newDayTitle || `Day ${days.length + 1}`,
       sequence_order: maxOrder + 1,
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      setDayError(error.message);
+      toast.error(error.message);
+      return;
+    }
     toast.success("Day added!");
     setAddDayOpen(false);
     setNewDayTitle("");
@@ -650,7 +656,14 @@ export default function TimelineView({
       )}
 
       {/* Add Day Modal */}
-      <Modal open={addDayOpen} onClose={() => setAddDayOpen(false)} title="Add Day">
+      <Modal
+        open={addDayOpen}
+        onClose={() => {
+          setDayError(null);
+          setAddDayOpen(false);
+        }}
+        title="Add Day"
+      >
         <form onSubmit={handleAddDay} data-testid="add-day-form">
           <div className="space-y-4">
             <div>
@@ -679,6 +692,15 @@ export default function TimelineView({
                 data-testid="add-day-date"
               />
             </div>
+            {dayError && (
+              <div
+                className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
+                role="alert"
+                data-testid="add-day-error"
+              >
+                {dayError}
+              </div>
+            )}
           </div>
           <div className="mt-6 flex justify-end gap-2">
             <button type="button" onClick={() => setAddDayOpen(false)} className="btn-secondary">

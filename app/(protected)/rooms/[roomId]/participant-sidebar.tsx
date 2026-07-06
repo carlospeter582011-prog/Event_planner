@@ -239,7 +239,7 @@ export default function ParticipantSidebar({
                                 key={key}
                                 className="flex items-center justify-between gap-2 rounded border border-slate-200 px-2 py-1.5 dark:border-slate-800"
                               >
-                                <span className="text-slate-700 dark:text-slate-200">
+                                <span className="min-w-0 pr-2 leading-tight text-slate-700 dark:text-slate-200">
                                   {permissionLabels[key]}
                                 </span>
                                 <span className="flex items-center gap-1.5">

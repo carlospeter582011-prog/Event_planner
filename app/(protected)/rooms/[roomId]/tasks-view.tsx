@@ -82,11 +82,29 @@ export default function TasksView({ roomId, userId, permissions }: TasksViewProp
     const isOwner = task.owner_id === userId;
     if (!isOwner && !canManageTasks) return;
 
+    const nextCompleted = !task.is_completed;
+    setTasks((currentTasks) =>
+      currentTasks.map((currentTask) =>
+        currentTask.id === task.id
+          ? { ...currentTask, is_completed: nextCompleted }
+          : currentTask,
+      ),
+    );
+
     const { error } = await supabase
       .from("tasks")
-      .update({ is_completed: !task.is_completed })
+      .update({ is_completed: nextCompleted })
       .eq("id", task.id);
-    if (error) toast.error(error.message);
+    if (error) {
+      setTasks((currentTasks) =>
+        currentTasks.map((currentTask) =>
+          currentTask.id === task.id
+            ? { ...currentTask, is_completed: task.is_completed }
+            : currentTask,
+        ),
+      );
+      toast.error(error.message);
+    }
   }
 
   async function deleteTask(task: TaskRow) {

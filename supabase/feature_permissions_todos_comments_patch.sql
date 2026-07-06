@@ -176,6 +176,8 @@ on public.room_permission_overrides
 for select
 to authenticated
 using (
+  public.is_room_host(room_id, auth.uid())
+  or
   exists (
     select 1
     from public.room_participants rp

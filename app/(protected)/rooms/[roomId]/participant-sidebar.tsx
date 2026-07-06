@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
@@ -61,10 +61,17 @@ export default function ParticipantSidebar({
 }: ParticipantSidebarProps) {
   const [updatingPermission, setUpdatingPermission] = useState<string | null>(null);
   const [selectedParticipantId, setSelectedParticipantId] = useState<string | null>(null);
+  const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [localPermissionOverrides, setLocalPermissionOverrides] =
+    useState<RoomPermissionOverride[]>(permissionOverrides);
   const isCurrentUserHost = currentRole === "HOST";
 
+  useEffect(() => {
+    setLocalPermissionOverrides(permissionOverrides);
+  }, [permissionOverrides]);
+
   function getOverride(userId: string) {
-    return permissionOverrides.find((override) => override.user_id === userId) ?? null;
+    return localPermissionOverrides.find((override) => override.user_id === userId) ?? null;
   }
 
   function getPermissions(participant: ParticipantRecord) {
@@ -85,8 +92,32 @@ export default function ParticipantSidebar({
     const column = permissionColumnByKey[key];
     const loadingKey = `${participant.id}-${key}`;
     const participantName = participant.profile?.name || "participant";
+    const previousOverrides = localPermissionOverrides;
+    const existingOverride = getOverride(userId);
 
     setUpdatingPermission(loadingKey);
+    setPermissionError(null);
+    setLocalPermissionOverrides((currentOverrides) => {
+      const nextOverride = {
+        ...existingOverride,
+        id: existingOverride?.id ?? `optimistic-${roomId}-${userId}`,
+        room_id: roomId,
+        user_id: userId,
+        [column]: nextValue,
+        created_at: existingOverride?.created_at ?? new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as RoomPermissionOverride;
+
+      if (existingOverride) {
+        return currentOverrides.map((override) =>
+          override.room_id === roomId && override.user_id === userId
+            ? nextOverride
+            : override,
+        );
+      }
+
+      return [...currentOverrides, nextOverride];
+    });
     const supabase = createClient();
     const { error } = await supabase.from("room_permission_overrides").upsert(
       {
@@ -101,10 +132,13 @@ export default function ParticipantSidebar({
     setUpdatingPermission(null);
 
     if (error) {
+      setLocalPermissionOverrides(previousOverrides);
+      setPermissionError(error.message);
       toast.error(error.message);
       return;
     }
 
+    setPermissionError(null);
     toast.success(`${permissionLabels[key]} updated for ${participantName}.`);
     onParticipantsChanged?.();
   }
@@ -195,6 +229,15 @@ export default function ParticipantSidebar({
               Toggle exact room abilities for each collaborator.
             </p>
           </div>
+          {permissionError && (
+            <div
+              className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"
+              role="alert"
+              data-testid="permission-save-error"
+            >
+              {permissionError}
+            </div>
+          )}
           {selectedParticipant ? (
             <div className="text-xs">
               {(() => {

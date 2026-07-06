@@ -82,6 +82,7 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
 
     setSendError(null);
     setSaving(true);
+    await ensureRoomParticipant();
     const { error } = await supabase.from("room_messages").insert({
       room_id: roomId,
       user_id: userId,
@@ -97,6 +98,28 @@ export default function ChatView({ roomId, userId, role, permissions }: ChatView
 
     setBody("");
     fetchMessages();
+  }
+
+  async function ensureRoomParticipant() {
+    const { data: existingParticipant } = await supabase
+      .from("room_participants")
+      .select("id")
+      .eq("room_id", roomId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existingParticipant) return;
+
+    await supabase
+      .from("room_participants")
+      .upsert(
+        {
+          room_id: roomId,
+          user_id: userId,
+          role: role === "HOST" ? "HOST" : "VIEWER",
+        },
+        { onConflict: "room_id,user_id" },
+      );
   }
 
   async function deleteMessage(message: MessageRow) {

@@ -65,6 +65,7 @@ begin
       when 'manage_budget' then can_manage_budget
       when 'manage_itinerary' then can_manage_itinerary
       when 'manage_polls' then can_manage_polls
+      when 'delete_polls' then can_delete_polls
       when 'resolve_polls' then can_resolve_polls
       when 'manage_tasks' then can_manage_tasks
       when 'create_public_tasks' then can_create_public_tasks

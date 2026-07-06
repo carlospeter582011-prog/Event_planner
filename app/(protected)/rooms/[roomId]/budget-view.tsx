@@ -302,6 +302,10 @@ function BudgetCard({
     red: "text-red-600",
     amber: "text-amber-600",
   };
+  const valueFontSizeRem = Math.max(
+    0.45,
+    Math.min(1.25, 14 / Math.max(value.length, 8)),
+  );
 
   return (
     <div className="card min-w-0 overflow-hidden p-4" data-testid={testId}>
@@ -309,7 +313,8 @@ function BudgetCard({
         {label}
       </p>
       <p
-        className={`mt-1 block min-w-0 break-all text-lg font-bold leading-tight [overflow-wrap:anywhere] sm:text-xl ${colorMap[color]} dark:text-${color}-400`}
+        className={`mt-1 block min-w-0 max-w-full whitespace-nowrap font-bold leading-tight ${colorMap[color]} dark:text-${color}-400`}
+        style={{ fontSize: `${valueFontSizeRem}rem` }}
         title={value}
       >
         {value}

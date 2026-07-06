@@ -265,14 +265,10 @@ function MetricCard({
     blue: "text-blue-600 dark:text-blue-400",
     slate: "text-slate-700 dark:text-slate-200",
   };
-  const valueSizeClass =
-    value.length > 24
-      ? "text-sm sm:text-base"
-      : value.length > 18
-        ? "text-base sm:text-lg"
-        : value.length > 12
-          ? "text-xl sm:text-2xl"
-          : "text-3xl";
+  const valueFontSizeRem = Math.max(
+    0.45,
+    Math.min(1.875, 18 / Math.max(value.length, 8)),
+  );
 
   return (
     <div className="card min-w-0 p-4" data-testid={testId}>
@@ -280,7 +276,8 @@ function MetricCard({
         {label}
       </p>
       <p
-        className={`mt-2 block max-w-full break-all font-bold leading-tight [overflow-wrap:anywhere] ${valueSizeClass} ${toneClasses[tone]}`}
+        className={`mt-2 block max-w-full whitespace-nowrap font-bold leading-tight ${toneClasses[tone]}`}
+        style={{ fontSize: `${valueFontSizeRem}rem` }}
         title={value}
       >
         {value}

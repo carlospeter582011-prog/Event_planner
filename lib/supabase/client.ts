@@ -2,6 +2,10 @@ import { createBrowserClient } from "@supabase/ssr";
 import { getSupabaseConfig, missingSupabaseMessage } from "./config";
 import { supabaseCookieOptions } from "./cookies";
 
+type BrowserSupabaseClient = ReturnType<typeof createBrowserClient>;
+
+let browserClient: BrowserSupabaseClient | null = null;
+
 /**
  * Browser-side Supabase client.
  * Uses cookies managed by @supabase/ssr for session persistence.
@@ -17,7 +21,18 @@ export function createClient() {
     throw new Error(missingSupabaseMessage);
   }
 
-  return createBrowserClient(config.url, config.anonKey, {
+  if (browserClient) {
+    return browserClient;
+  }
+
+  browserClient = createBrowserClient(config.url, config.anonKey, {
     cookieOptions: supabaseCookieOptions,
+    auth: {
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      persistSession: true,
+    },
   });
+
+  return browserClient;
 }

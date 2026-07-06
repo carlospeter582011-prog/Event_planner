@@ -17,25 +17,33 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
   const initialMode = searchParams.get("mode") === "signup" ? "signup" : "signin";
   const redirectPath = searchParams.get("redirect") || "/dashboard";
+  const supabaseConfigured = isSupabaseConfigured();
 
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(supabaseConfigured);
 
   const isSignUp = mode === "signup";
-  const supabaseConfigured = isSupabaseConfigured();
 
   useEffect(() => {
-    if (!supabaseConfigured) return;
+    if (!supabaseConfigured) {
+      setCheckingSession(false);
+      return;
+    }
 
     const supabase = createClient();
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         router.replace(redirectPath);
         router.refresh();
+        return;
       }
+      setCheckingSession(false);
+    }).catch(() => {
+      setCheckingSession(false);
     });
   }, [redirectPath, router, supabaseConfigured]);
 
@@ -80,6 +88,21 @@ export default function SignInPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return (
+      <main className="relative flex min-h-screen items-center justify-center px-4">
+        <div
+          className="absolute inset-0 -z-10 bg-gradient-to-br from-brand-50 via-white to-emerald-50 dark:from-slate-950 dark:via-slate-900 dark:to-brand-950"
+          aria-hidden="true"
+        />
+        <div className="card flex items-center gap-3 px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+          <Spinner className="h-4 w-4 text-brand-500" />
+          Checking your saved session...
+        </div>
+      </main>
+    );
   }
 
   return (

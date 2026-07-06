@@ -62,3 +62,4 @@ Iteration 41: Updated resume.md handoff with granular permissions, comments, pri
 2026-07-06 - Hardened sign-in persistence by redirecting existing sessions and waiting for a readable Supabase session before full-page navigation.
 2026-07-06 - Fixed days/activity RLS to honor Host-controlled itinerary permissions and clarified the Viewer timeline edit toggle label.
 2026-07-06 - Added host-controlled poll deletion permission, poll voter visibility, comment RLS hotfix coverage, and expanded the two-account TestSprite regression.
+2026-07-06 - Hardened auth persistence with a singleton browser Supabase client, session-check loading state, and a reopen persistence TestSprite regression.
